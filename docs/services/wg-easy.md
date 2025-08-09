@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2023 - 2025 Slavi Pantaleev
+
+SPDX-License-Identifier: AGPL-3.0-or-later
+-->
+
 # WireGuard Easy
 
 [WireGuard Easy](https://github.com/wg-easy/wg-easy) is the easiest way to run [WireGuard](https://www.wireguard.com/) VPN + Web-based Admin UI.
@@ -192,7 +198,7 @@ wg_easy_environment_variables_additional_variables: |
 
 ## Usage
 
-After installation, you can go to the wg-easy [URL](#url).
+After installation, you can open the wg-easy [URL](#url).
 
 Most users can log in with the credentials they provided before the first installation and can log in and proceed to [create WireGuard clients](#creating-wireguard-clients).
 

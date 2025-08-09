@@ -1,3 +1,11 @@
+<!--
+SPDX-FileCopyrightText: 2023 Julian-Samuel Gebühr
+SPDX-FileCopyrightText: 2023 Slavi Pantaleev
+SPDX-FileCopyrightText: 2025 Suguru Hirahara
+
+SPDX-License-Identifier: AGPL-3.0-or-later
+-->
+
 # Firezone
 
 [Firezone](https://www.firezone.dev/) is a self-hosted VPN server (based on [WireGuard](https://www.wireguard.com/)) with Web UI that this playbook can install, powered by the [mother-of-all-self-hosting/ansible-role-firezone](https://github.com/mother-of-all-self-hosting/ansible-role-firezone) Ansible role.
@@ -26,9 +34,9 @@ To enable this service, add the following configuration to your `vars.yml` file 
 
 firezone_enabled: true
 
-firezone_hostname: vpn.example.org
+firezone_hostname: firezone.example.com
 
-firezone_default_admin_email: "user@invalid.org"
+firezone_default_admin_email: "user@example.com"
 firezone_default_admin_password: "<securepassword>"
 
 # Generate this with `openssl rand -base64 32`
@@ -55,6 +63,8 @@ Docker automatically opens these ports in the server's firewall, so you **likely
 
 ### Usage
 
-After [installing](../installing.md), you can login at the URL specified in `firezone_hostname`, with the credentials set in `firezone_default_admin_email` and `firezone_default_admin_password`.
+After running the command for installation, the Firezone instance becomes available at the URL specified with `firezone_hostname`. With the configuration above, the service is hosted at `https://firezone.example.com`.
+
+To get started, open the URL with a web browser, and log in to the service with the credentials set to `firezone_default_admin_email` and `firezone_default_admin_password`.
 
 Refer to the [official documentation](https://www.firezone.dev/docs/user-guides/add-devices/) to figure out how to add devices, etc.
