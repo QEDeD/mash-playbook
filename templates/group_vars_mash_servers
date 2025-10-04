@@ -269,6 +269,11 @@ mash_playbook_devture_systemd_service_manager_services_list_auto_itemized:
     {{ ({'name': (firezone_identifier + '.service'), 'priority': 2000, 'groups': ['mash', 'firezone']} if firezone_enabled else omit) }}
   # /role-specific:firezone
 
+  # role-specific:flaresolverr
+  - |-
+    {{ ({'name': (flaresolverr_identifier + '.service'), 'priority': 2000, 'groups': ['mash', 'flaresolverr']} if flaresolverr_enabled else omit) }}
+  # /role-specific:flaresolverr
+
   # role-specific:fmd_server
   - |-
     {{ ({'name': (fmd_server_identifier + '.service'), 'priority': 2000, 'groups': ['mash', 'fmd-server']} if fmd_server_enabled else omit) }}
@@ -373,6 +378,11 @@ mash_playbook_devture_systemd_service_manager_services_list_auto_itemized:
   - |-
     {{ ({'name': (immich_machine_learning_identifier + '.service'), 'priority': 1500, 'groups': ['mash', 'immich']} if immich_enabled and immich_machine_learning_enabled else omit) }}
   # /role-specific:immich
+
+  # role-specific:immich_kiosk
+  - |-
+    {{ ({'name': (immich_kiosk_identifier + '.service'), 'priority': 2000, 'groups': ['mash', 'immich-kiosk']} if immich_kiosk_enabled else omit) }}
+  # /role-specific:immich_kiosk
 
   # role-specific:infisical
   - |-
@@ -647,6 +657,11 @@ mash_playbook_devture_systemd_service_manager_services_list_auto_itemized:
   - |-
     {{ ({'name': (postgis_identifier + '.service'), 'priority': 2000, 'groups': ['mash', 'metrics', 'postgis']} if postgis_enabled else omit) }}
   # /role-specific:postgis
+
+  # role-specific:poodledonts
+  - |-
+    {{ ({'name': (poodledonts_identifier + '.service'), 'priority': 2000, 'groups': ['mash', 'poodledonts']} if poodledonts_enabled else omit) }}
+  # /role-specific:poodledonts
 
   # role-specific:postgres
   - |-
@@ -1384,9 +1399,9 @@ mash_playbook_postgres_managed_databases_auto_itemized:
     {{
       ({
         'name': redmine_database_name,
-        'username': redmine_database_username,
-        'password': redmine_database_password,
-      } if redmine_enabled and redmine_database_hostname == postgres_connection_hostname and redmine_database_type == 'postgresql' else omit)
+        'username': redmine_database_postgres_username,
+        'password': redmine_database_postgres_password,
+      } if redmine_enabled and redmine_database_postgres_hostname == postgres_connection_hostname and redmine_database_type == 'postgresql' else omit)
     }}
   # /role-specific:redmine
 
@@ -3199,6 +3214,45 @@ firezone_container_labels_traefik_tls_certResolver: "{{ traefik_certResolver_pri
 #                                                                      #
 ########################################################################
 # /role-specific:firezone
+
+
+
+# role-specific:flaresolverr
+########################################################################
+#                                                                      #
+# flaresolverr                                                         #
+#                                                                      #
+########################################################################
+
+flaresolverr_enabled: false
+
+flaresolverr_identifier: "{{ mash_playbook_service_identifier_prefix }}flaresolverr"
+
+flaresolverr_base_path: "{{ mash_playbook_base_path }}/{{ mash_playbook_service_base_directory_name_prefix }}flaresolverr"
+
+flaresolverr_uid: "{{ mash_playbook_uid }}"
+flaresolverr_gid: "{{ mash_playbook_gid }}"
+
+
+flaresolverr_container_additional_networks_auto: |
+  {{
+    ([mash_playbook_reverse_proxyable_services_additional_network] if mash_playbook_reverse_proxyable_services_additional_network else [])
+  }}
+
+flaresolverr_container_labels_traefik_enabled: "{{ mash_playbook_traefik_labels_enabled }}"
+flaresolverr_container_labels_traefik_docker_network: "{{ mash_playbook_reverse_proxyable_services_additional_network }}"
+
+# role-specific:traefik
+flaresolverr_container_labels_traefik_entrypoints: "{{ traefik_entrypoint_primary }}"
+flaresolverr_container_labels_traefik_tls_certResolver: "{{ traefik_certResolver_primary }}"
+# /role-specific:traefik
+
+########################################################################
+#                                                                      #
+# /flaresolverr                                                        #
+#                                                                      #
+########################################################################
+# /role-specific:flaresolverr
 
 
 
@@ -5253,6 +5307,58 @@ immich_database_sslmode: "{{ 'disable' if (immich_database_hostname == postgres_
 #                                                                      #
 ########################################################################
 # /role-specific:immich
+
+
+
+# role-specific:immich_kiosk
+########################################################################
+#                                                                      #
+# immich_kiosk                                                         #
+#                                                                      #
+########################################################################
+
+immich_kiosk_enabled: false
+
+immich_kiosk_identifier: "{{ mash_playbook_service_identifier_prefix }}immich-kiosk"
+
+immich_kiosk_base_path: "{{ mash_playbook_base_path }}/{{ mash_playbook_service_base_directory_name_prefix }}immich-kiosk"
+
+immich_kiosk_uid: "{{ mash_playbook_uid }}"
+immich_kiosk_gid: "{{ mash_playbook_gid }}"
+
+immich_kiosk_systemd_wanted_services_list_auto: |
+  {{
+    ([immich_identifier ~ '.service'] if immich_enabled | default(false) else [])
+  }}
+
+immich_kiosk_container_additional_networks_auto: |
+  {{
+    ([immich_server_container_network] if immich_enabled | default(false) and immich_kiosk_container_network != immich_server_container_network else [])
+    +
+    ([mash_playbook_reverse_proxyable_services_additional_network] if mash_playbook_reverse_proxyable_services_additional_network else [])
+  }}
+
+# Only enable Traefik labels if a hostname is set (indicating that this will be exposed publicly)
+immich_kiosk_container_labels_traefik_enabled: "{{ mash_playbook_traefik_labels_enabled and immich_kiosk_hostname }}"
+immich_kiosk_container_labels_traefik_docker_network: "{{ mash_playbook_reverse_proxyable_services_additional_network }}"
+
+# role-specific:immich
+immich_kiosk_environment_variables_kiosk_immich_url: "http://{{ immich_server_identifier }}:{{ immich_server_http_port }}"
+immich_kiosk_environment_variables_kiosk_immich_external_url: "{{ immich_scheme }}://{{ immich_hostname }}"
+# /role-specific:immich
+
+# role-specific:traefik
+immich_kiosk_container_labels_traefik_entrypoints: "{{ traefik_entrypoint_primary }}"
+immich_kiosk_container_labels_traefik_tls_certResolver: "{{ traefik_certResolver_primary }}"
+# /role-specific:traefik
+
+########################################################################
+#                                                                      #
+# /immich_kiosk                                                        #
+#                                                                      #
+########################################################################
+# /role-specific:immich_kiosk
+
 
 
 # role-specific:infisical
@@ -7913,6 +8019,44 @@ pocket_id_container_labels_traefik_tls_certResolver: "{{ traefik_certResolver_pr
 
 
 
+# role-specific:poodledonts
+########################################################################
+#                                                                      #
+# poodledonts                                                          #
+#                                                                      #
+########################################################################
+
+poodledonts_enabled: false
+
+poodledonts_identifier: "{{ mash_playbook_service_identifier_prefix }}poodledonts"
+
+poodledonts_base_path: "{{ mash_playbook_base_path }}/{{ mash_playbook_service_base_directory_name_prefix }}poodledonts"
+
+poodledonts_uid: "{{ mash_playbook_uid }}"
+poodledonts_gid: "{{ mash_playbook_gid }}"
+
+poodledonts_container_additional_networks_auto: |
+  {{
+    ([mash_playbook_reverse_proxyable_services_additional_network] if mash_playbook_reverse_proxyable_services_additional_network else [])
+  }}
+
+poodledonts_container_labels_traefik_enabled: "{{ mash_playbook_traefik_labels_enabled }}"
+poodledonts_container_labels_traefik_docker_network: "{{ mash_playbook_reverse_proxyable_services_additional_network }}"
+
+# role-specific:traefik
+poodledonts_container_labels_traefik_entrypoints: "{{ traefik_entrypoint_primary }}"
+poodledonts_container_labels_traefik_tls_certResolver: "{{ traefik_certResolver_primary }}"
+# /role-specific:traefik
+
+########################################################################
+#                                                                      #
+# /poodledonts                                                         #
+#                                                                      #
+########################################################################
+# /role-specific:poodledonts
+
+
+
 # role-specific:postgis
 ########################################################################
 #                                                                      #
@@ -8604,14 +8748,14 @@ redmine_database_cipher_key: "{{ '%s' | format(mash_playbook_generic_secret_key)
 
 redmine_systemd_required_services_list_auto: |
   {{
-    ([postgres_identifier ~ '.service'] if postgres_enabled and redmine_database_hostname == postgres_connection_hostname else [])
+    ([postgres_identifier ~ '.service'] if postgres_enabled and redmine_database_postgres_hostname == postgres_connection_hostname and redmine_database_type == 'postgresql' else [])
   }}
 
 redmine_container_additional_networks_auto: |
   {{
     ([mash_playbook_reverse_proxyable_services_additional_network] if mash_playbook_reverse_proxyable_services_additional_network else [])
     +
-    ([postgres_container_network] if postgres_enabled and redmine_database_hostname == postgres_connection_hostname and redmine_container_network != postgres_container_network else [])
+    ([postgres_container_network] if postgres_enabled and redmine_database_postgres_hostname == postgres_connection_hostname and redmine_container_network != postgres_container_network and redmine_database_type == 'postgresql' else [])
   }}
 
 redmine_container_labels_traefik_enabled: "{{ mash_playbook_traefik_labels_enabled }}"
@@ -8620,9 +8764,9 @@ redmine_container_labels_traefik_docker_network: "{{ mash_playbook_reverse_proxy
 redmine_database_type: "{{ 'postgresql' if postgres_enabled else 'sqlite3' }}"
 
 # role-specific:postgres
-redmine_database_hostname: "{{ postgres_connection_hostname if postgres_enabled else '' }}"
-redmine_database_port: "{{ postgres_connection_port if postgres_enabled else '5432' }}"
-redmine_database_password: "{{ '%s' | format(mash_playbook_generic_secret_key) | password_hash('sha512', 'redmine.db', rounds=655555) | to_uuid }}"
+redmine_database_postgres_hostname: "{{ postgres_connection_hostname if postgres_enabled else '' }}"
+redmine_database_postgres_port: "{{ postgres_connection_port if postgres_enabled else '5432' }}"
+redmine_database_postgres_password: "{{ '%s' | format(mash_playbook_generic_secret_key) | password_hash('sha512', 'redmine.db', rounds=655555) | to_uuid }}"
 # /role-specific:postgres
 
 # role-specific:traefik
