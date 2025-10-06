@@ -110,6 +110,30 @@ versions:
     @echo "generating versions..."
     @python bin/versions.py
 
+# Launches the disposable Docker-based test host
+test-host-up:
+    docker build -t mash-test-host-image -f tools/testhost/Dockerfile tools/testhost
+    docker rm -f mash-test-host >/dev/null 2>&1 || true
+    docker run --name mash-test-host \
+        --privileged \
+        --cgroupns host \
+        -v /sys/fs/cgroup:/sys/fs/cgroup:rw \
+        --tmpfs /run \
+        --tmpfs /run/lock \
+        --tmpfs /tmp \
+        -e container=docker \
+        -p 2222:22 \
+        -d mash-test-host-image \
+        /lib/systemd/systemd
+
+# Stops and removes the disposable Docker-based test host
+test-host-down:
+    docker rm -f mash-test-host >/dev/null 2>&1 || true
+
+# Shows logs from the disposable Docker-based test host
+test-host-logs:
+    docker logs -f mash-test-host
+
 # Runs the playbook with --tags=install-all,start and optional arguments
 install-all *extra_args: (run-tags "install-all,start" extra_args)
 
