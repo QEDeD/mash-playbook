@@ -197,7 +197,7 @@
   name: funkwhale
   activation_prefix: funkwhale_
 - src: git+https://github.com/mother-of-all-self-hosting/ansible-role-ghostfolio.git
-  version: v2.206.0-0
+  version: v2.207.0-0
   name: ghostfolio
   activation_prefix: ghostfolio_
 - src: git+https://github.com/mother-of-all-self-hosting/ansible-role-gitea.git
@@ -213,7 +213,7 @@
   name: gotify
   activation_prefix: gotify_
 - src: git+https://github.com/mother-of-all-self-hosting/ansible-role-gotosocial.git
-  version: v0.20.0-0
+  version: v0.20.0-1
   name: gotosocial
   activation_prefix: gotosocial_
 - src: git+https://github.com/mother-of-all-self-hosting/ansible-role-grafana.git
@@ -340,6 +340,10 @@
   version: v1.43.3-0
   name: mediawiki
   activation_prefix: mediawiki_
+- src: git+https://github.com/mother-of-all-self-hosting/ansible-role-meilisearch.git
+  version: v1.22.3-0
+  name: meilisearch
+  activation_prefix: meilisearch_
 - src: git+https://github.com/XHawk87/ansible-role-minecraft.git
   version: v2025.4.2-0
   name: minecraft
@@ -661,7 +665,7 @@
   name: woodpecker_ci_server
   activation_prefix: woodpecker_ci_server_
 - src: git+https://github.com/mother-of-all-self-hosting/ansible-role-wordpress
-  version: v6.8.2-3
+  version: v6.8.3-0
   name: wordpress
   activation_prefix: wordpress_
 - src: git+https://github.com/ZenKyma/ansible-role-writefreely.git
