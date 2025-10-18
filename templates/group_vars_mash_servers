@@ -113,6 +113,11 @@ mash_playbook_devture_systemd_service_manager_services_list_auto_itemized:
     {{ ({'name': (apisix_gateway_identifier + '.service'), 'priority': 2000, 'groups': ['mash', 'apisix-gateway']} if apisix_gateway_enabled else omit) }}
   # /role-specific:apisix_gateway
 
+  # role-specific:apprise
+  - |-
+    {{ ({'name': (apprise_identifier + '.service'), 'priority': 2000, 'groups': ['mash', 'apprise']} if apprise_enabled else omit) }}
+  # /role-specific:apprise
+
   # role-specific:appsmith
   - |-
     {{ ({'name': (appsmith_identifier + '.service'), 'priority': 2000, 'groups': ['mash', 'appsmith']} if appsmith_enabled else omit) }}
@@ -122,6 +127,11 @@ mash_playbook_devture_systemd_service_manager_services_list_auto_itemized:
   - |-
     {{ ({'name': (asciinema_server_identifier + '.service'), 'priority': 2000, 'groups': ['mash', 'asciinema-server']} if asciinema_server_enabled else omit) }}
   # /role-specific:asciinema_server
+
+  # role-specific:atuin
+  - |-
+    {{ ({'name': (atuin_identifier + '.service'), 'priority': 2000, 'groups': ['mash', 'atuin']} if atuin_enabled else omit) }}
+  # /role-specific:atuin
 
   # role-specific:audiobookshelf
   - |-
@@ -149,6 +159,13 @@ mash_playbook_devture_systemd_service_manager_services_list_auto_itemized:
   - |-
     {{ ({'name': (backup_borg_identifier + '.timer'), 'priority': 5000, 'groups': ['mash', 'backup', 'borg']} if backup_borg_enabled else omit) }}
   # /role-specific:backup_borg
+
+  # role-specific:barassistant
+  - |-
+    {{ ({'name': (barassistant_saltrim_identifier + '.service'), 'priority': 2000, 'groups': ['mash', 'barassistant']} if barassistant_enabled else omit) }}
+  - |-
+    {{ ({'name': (barassistant_server_identifier + '.service'), 'priority': 2000, 'groups': ['mash', 'barassistant']} if barassistant_enabled else omit) }}
+  # /role-specific:barassistant
 
   # role-specific:calibre_web
   - |-
@@ -485,6 +502,11 @@ mash_playbook_devture_systemd_service_manager_services_list_auto_itemized:
     {{ ({'name': (linkding_identifier + '.service'), 'priority': 2000, 'groups': ['mash', 'linkding']} if linkding_enabled else omit) }}
   # /role-specific:linkding
 
+  # role-specific:linkwarden
+  - |-
+    {{ ({'name': (linkwarden_identifier + '.service'), 'priority': 2000, 'groups': ['mash', 'linkwarden']} if linkwarden_enabled else omit) }}
+  # /role-specific:linkwarden
+
   # role-specific:listmonk
   - |-
     {{ ({'name': (listmonk_identifier + '.service'), 'priority': 2000, 'groups': ['mash', 'listmonk']} if listmonk_enabled else omit) }}
@@ -519,6 +541,11 @@ mash_playbook_devture_systemd_service_manager_services_list_auto_itemized:
   - |-
     {{ ({'name': (mediawiki_identifier + '.service'), 'priority': 2000, 'groups': ['mash', 'mediawiki']} if mediawiki_enabled else omit) }}
   # /role-specific:mediawiki
+
+  # role-specific:meilisearch
+  - |-
+    {{ ({'name': (meilisearch_identifier + '.service'), 'priority': 2000, 'groups': ['mash', 'meilisearch']} if meilisearch_enabled else omit) }}
+  # /role-specific:meilisearch
 
   # role-specific:minecraft
   - |-
@@ -966,6 +993,17 @@ mash_playbook_postgres_managed_databases_auto_itemized:
     }}
   # /role-specific:asciinema_server
 
+  # role-specific:atuin
+  - |-
+    {{
+      ({
+        'name': atuin_database_name,
+        'username': atuin_database_username,
+        'password': atuin_database_password,
+      } if atuin_enabled and atuin_database_hostname == postgres_connection_hostname and atuin_database_type == 'postgres' else omit)
+    }}
+  # /role-specific:atuin
+
   # role-specific:authelia
   - |-
     {{
@@ -1242,6 +1280,17 @@ mash_playbook_postgres_managed_databases_auto_itemized:
       } if linkding_enabled and linkding_database_hostname == postgres_connection_hostname and linkding_database_type == 'postgres' else omit)
     }}
   # /role-specific:linkding
+
+  # role-specific:linkwarden
+  - |-
+    {{
+      ({
+        'name': linkwarden_database_name,
+        'username': linkwarden_database_username,
+        'password': linkwarden_database_password,
+      } if linkwarden_enabled and linkwarden_database_hostname == postgres_connection_hostname else omit)
+    }}
+  # /role-specific:linkwarden
 
   # role-specific:listmonk
   - |-
@@ -1978,6 +2027,45 @@ apisix_gateway_container_labels_traefik_tls_certResolver: "{{ traefik_certResolv
 
 
 
+# role-specific:apprise
+########################################################################
+#                                                                      #
+# apprise                                                              #
+#                                                                      #
+########################################################################
+
+apprise_enabled: false
+
+apprise_identifier: "{{ mash_playbook_service_identifier_prefix }}apprise"
+
+apprise_base_path: "{{ mash_playbook_base_path }}/{{ mash_playbook_service_base_directory_name_prefix }}apprise"
+
+apprise_uid: "{{ mash_playbook_uid }}"
+apprise_gid: "{{ mash_playbook_gid }}"
+
+apprise_container_additional_networks_auto: |
+  {{
+    ([mash_playbook_reverse_proxyable_services_additional_network] if mash_playbook_reverse_proxyable_services_additional_network else [])
+  }}
+
+# Only enable Traefik labels if a hostname is set (indicating that this will be exposed publicly)
+apprise_container_labels_traefik_enabled: "{{ mash_playbook_traefik_labels_enabled and apprise_hostname | length > 0 }}"
+apprise_container_labels_traefik_docker_network: "{{ mash_playbook_reverse_proxyable_services_additional_network }}"
+
+# role-specific:traefik
+apprise_container_labels_traefik_entrypoints: "{{ traefik_entrypoint_primary }}"
+apprise_container_labels_traefik_tls_certResolver: "{{ traefik_certResolver_primary }}"
+# /role-specific:traefik
+
+########################################################################
+#                                                                      #
+# /apprise                                                             #
+#                                                                      #
+########################################################################
+# /role-specific:apprise
+
+
+
 # role-specific:appsmith
 ########################################################################
 #                                                                      #
@@ -2079,6 +2167,57 @@ asciinema_server_container_labels_traefik_tls_certResolver: "{{ traefik_certReso
 #                                                                      #
 ########################################################################
 # /role-specific:asciinema_server
+
+
+
+# role-specific:atuin
+########################################################################
+#                                                                      #
+# atuin                                                                #
+#                                                                      #
+########################################################################
+
+atuin_enabled: false
+
+atuin_identifier: "{{ mash_playbook_service_identifier_prefix }}atuin"
+
+atuin_base_path: "{{ mash_playbook_base_path }}/{{ mash_playbook_service_base_directory_name_prefix }}atuin"
+
+atuin_uid: "{{ mash_playbook_uid }}"
+atuin_gid: "{{ mash_playbook_gid }}"
+
+atuin_systemd_required_services_list_auto: |
+ {{
+    ([postgres_identifier ~ '.service'] if postgres_enabled and atuin_database_hostname == postgres_connection_hostname else [])
+  }}
+
+atuin_container_additional_networks_auto: |
+  {{
+    ([mash_playbook_reverse_proxyable_services_additional_network] if mash_playbook_reverse_proxyable_services_additional_network else [])
+    +
+    ([postgres_container_network] if postgres_enabled and atuin_database_hostname == postgres_connection_hostname and atuin_container_network != postgres_container_network else [])
+  }}
+
+atuin_container_labels_traefik_enabled: "{{ mash_playbook_traefik_labels_enabled }}"
+atuin_container_labels_traefik_docker_network: "{{ mash_playbook_reverse_proxyable_services_additional_network }}"
+
+# role-specific:postgres
+atuin_database_hostname: "{{ postgres_connection_hostname if postgres_enabled else '' }}"
+atuin_database_port: "{{ postgres_connection_port if postgres_enabled else '5432' }}"
+atuin_database_password: "{{ '%s' | format(mash_playbook_generic_secret_key) | password_hash('sha512', 'db.atuin', rounds=655555) | to_uuid }}"
+# /role-specific:postgres
+
+# role-specific:traefik
+atuin_container_labels_traefik_entrypoints: "{{ traefik_entrypoint_primary }}"
+atuin_container_labels_traefik_tls_certResolver: "{{ traefik_certResolver_primary }}"
+# /role-specific:traefik
+
+########################################################################
+#                                                                      #
+# /atuin                                                               #
+#                                                                      #
+########################################################################
+# /role-specific:atuin
 
 
 
@@ -2357,6 +2496,89 @@ backup_borg_postgresql_databases_auto: "{{ postgres_managed_databases | map(attr
 #                                                                      #
 ########################################################################
 # /role-specific:backup_borg
+
+
+
+# role-specific:barassistant
+########################################################################
+#                                                                      #
+# barassistant                                                         #
+#                                                                      #
+########################################################################
+
+barassistant_enabled: false
+
+barassistant_identifier: "{{ mash_playbook_service_identifier_prefix }}barassistant"
+
+barassistant_base_path: "{{ mash_playbook_base_path }}/{{ mash_playbook_service_base_directory_name_prefix }}barassistant"
+
+barassistant_uid: "{{ mash_playbook_uid }}"
+barassistant_gid: "{{ mash_playbook_gid }}"
+
+barassistant_server_systemd_wanted_services_list_auto: |
+  {{
+    ([(exim_relay_identifier | default('mash-exim-relay')) ~ '.service'] if (exim_relay_enabled | default(false) and barassistant_server_environment_variables_mail_host == exim_relay_identifier | default('mash-exim-relay')) else [])
+    +
+    ([meilisearch_identifier ~ '.service'] if meilisearch_identifier | default(false) else [])
+  }}
+
+barassistant_saltrim_systemd_wanted_services_list_auto: |
+  {{
+    ([(exim_relay_identifier | default('mash-exim-relay')) ~ '.service'] if (exim_relay_enabled | default(false) and barassistant_server_environment_variables_mail_host == exim_relay_identifier | default('mash-exim-relay')) else [])
+    +
+    ([meilisearch_identifier ~ '.service'] if meilisearch_identifier | default(false) else [])
+  }}
+
+barassistant_server_container_additional_networks_auto: |
+  {{
+    ([exim_relay_container_network | default('mash-exim-relay')] if (exim_relay_enabled | default(false) and barassistant_server_environment_variables_mail_host == exim_relay_identifier | default('mash-exim-relay') and barassistant_container_network != exim_relay_container_network) else [])
+    +
+    ([mash_playbook_reverse_proxyable_services_additional_network] if mash_playbook_reverse_proxyable_services_additional_network else [])
+    +
+    ([meilisearch_container_network] if meilisearch_enabled | default(false) and barassistant_container_network != meilisearch_container_network else [])
+  }}
+
+barassistant_saltrim_container_additional_networks_auto: |
+  {{
+    ([exim_relay_container_network | default('mash-exim-relay')] if (exim_relay_enabled | default(false) and barassistant_server_environment_variables_mail_host == exim_relay_identifier | default('mash-exim-relay') and barassistant_container_network != exim_relay_container_network) else [])
+    +
+    ([mash_playbook_reverse_proxyable_services_additional_network] if mash_playbook_reverse_proxyable_services_additional_network else [])
+    +
+    ([meilisearch_container_network] if meilisearch_enabled | default(false) and barassistant_container_network != meilisearch_container_network else [])
+  }}
+
+barassistant_saltrim_container_labels_traefik_enabled: "{{ mash_playbook_traefik_labels_enabled }}"
+barassistant_saltrim_container_labels_traefik_docker_network: "{{ mash_playbook_reverse_proxyable_services_additional_network }}"
+barassistant_server_container_labels_traefik_enabled: "{{ mash_playbook_traefik_labels_enabled }}"
+barassistant_server_container_labels_traefik_docker_network: "{{ mash_playbook_reverse_proxyable_services_additional_network }}"
+
+# role-specific:exim_relay
+barassistant_mailer_enabled: "{{ exim_relay_enabled }}"
+barassistant_server_environment_variables_mail_mailer: smtp
+barassistant_server_environment_variables_mail_host: "{{ exim_relay_identifier if exim_relay_enabled else '' }}"
+barassistant_server_environment_variables_mail_port: 8025
+barassistant_server_environment_variables_mail_from_address: "{{ exim_relay_sender_address if exim_relay_enabled else '' }}"
+# /role-specific:exim_relay
+
+# role-specific:meilisearch
+barassistant_saltrim_environment_variables_meilisearch_url: "{{ barassistant_server_environment_variables_meilisearch_host }}"
+barassistant_server_environment_variables_meilisearch_host: "{{ meilisearch_scheme }}://{{ meilisearch_hostname }}"
+barassistant_server_environment_variables_meilisearch_key: "{{ meilisearch_default_admin_api_key }}"
+# /role-specific:meilisearch
+
+# role-specific:traefik
+barassistant_saltrim_container_labels_traefik_entrypoints: "{{ traefik_entrypoint_primary }}"
+barassistant_saltrim_container_labels_traefik_tls_certResolver: "{{ traefik_certResolver_primary }}"
+barassistant_server_container_labels_traefik_entrypoints: "{{ traefik_entrypoint_primary }}"
+barassistant_server_container_labels_traefik_tls_certResolver: "{{ traefik_certResolver_primary }}"
+# /role-specific:traefik
+
+########################################################################
+#                                                                      #
+# /barassistant                                                        #
+#                                                                      #
+########################################################################
+# /role-specific:barassistant
 
 
 
@@ -4005,7 +4227,7 @@ gotosocial_container_additional_networks_auto: |
 gotosocial_container_labels_traefik_enabled: "{{ mash_playbook_traefik_labels_enabled }}"
 gotosocial_container_labels_traefik_docker_network: "{{ mash_playbook_reverse_proxyable_services_additional_network }}"
 
-gotosocial_container_labels_metrics_enabled: "{{ mash_playbook_metrics_exposure_enabled }}"
+gotosocial_container_labels_metrics_enabled: "{{ gotosocial_metrics_enabled and mash_playbook_metrics_exposure_enabled }}"
 gotosocial_container_labels_metrics_hostname: "{{ mash_playbook_metrics_exposure_hostname }}"
 gotosocial_container_labels_metrics_path_prefix: "{{ mash_playbook_metrics_exposure_path_prefix }}/{{ gotosocial_identifier }}"
 gotosocial_container_labels_metrics_middleware_basic_auth_enabled: "{{ mash_playbook_metrics_exposure_http_basic_auth_enabled }}"
@@ -4228,7 +4450,7 @@ homarr_base_path: "{{ mash_playbook_base_path }}/{{ mash_playbook_service_base_d
 homarr_uid: "{{ mash_playbook_uid }}"
 homarr_gid: "{{ mash_playbook_gid }}"
 
-homarr_systemd_required_services_list: |
+homarr_systemd_required_services_list_auto: |
   {{
     ([container_socket_proxy_identifier + '.service'] if container_socket_proxy_enabled | default(false) else [])
     +
@@ -6312,6 +6534,70 @@ linkding_container_labels_traefik_tls_certResolver: "{{ traefik_certResolver_pri
 
 
 
+# role-specific:linkwarden
+########################################################################
+#                                                                      #
+# linkwarden                                                           #
+#                                                                      #
+########################################################################
+
+linkwarden_enabled: false
+
+linkwarden_identifier: "{{ mash_playbook_service_identifier_prefix }}linkwarden"
+
+linkwarden_base_path: "{{ mash_playbook_base_path }}/{{ mash_playbook_service_base_directory_name_prefix }}linkwarden"
+
+# Currently root access without read-only option is necessary for Linkwarden to work properly.
+# See: https://github.com/linkwarden/linkwarden/issues/799
+linkwarden_uid: "0"
+linkwarden_gid: "0"
+
+linkwarden_systemd_required_services_list_auto: |
+  {{
+    ([meilisearch_identifier ~ '.service'] if meilisearch_enabled | default(false) else [])
+    +
+    ([postgres_identifier ~ '.service'] if postgres_enabled and linkwarden_database_hostname == postgres_connection_hostname else [])
+  }}
+
+linkwarden_container_additional_networks_auto: |
+  {{
+    ([mash_playbook_reverse_proxyable_services_additional_network] if mash_playbook_reverse_proxyable_services_additional_network else [])
+    +
+    ([meilisearch_container_network] if meilisearch_enabled | default(false) and linkwarden_container_network != meilisearch_container_network else [])
+    +
+    ([postgres_container_network] if postgres_enabled and linkwarden_database_hostname == postgres_connection_hostname and linkwarden_container_network != postgres_container_network else [])
+  }}
+
+linkwarden_container_labels_traefik_enabled: "{{ mash_playbook_traefik_labels_enabled }}"
+linkwarden_container_labels_traefik_docker_network: "{{ mash_playbook_reverse_proxyable_services_additional_network }}"
+
+linkwarden_environment_variables_nextauth_secret: "{{ '%s' | format(mash_playbook_generic_secret_key) | password_hash('sha512', 'linkwarden.na', rounds=655555) | to_uuid }}"
+
+# role-specific:meilisearch
+linkwarden_environment_variables_meili_host: "http://{{ meilisearch_identifier }}:{{ meilisearch_container_http_port }}"
+linkwarden_environment_variables_meili_key: "{{ meilisearch_default_admin_api_key }}"
+# /role-specific:meilisearch
+
+# role-specific:postgres
+linkwarden_database_hostname: "{{ postgres_connection_hostname if postgres_enabled else '' }}"
+linkwarden_database_port: "{{ postgres_connection_port if postgres_enabled else '5432' }}"
+linkwarden_database_password: "{{ '%s' | format(mash_playbook_generic_secret_key) | password_hash('sha512', 'linkwarden.db', rounds=655555) | to_uuid }}"
+# /role-specific:postgres
+
+# role-specific:traefik
+linkwarden_container_labels_traefik_entrypoints: "{{ traefik_entrypoint_primary }}"
+linkwarden_container_labels_traefik_tls_certResolver: "{{ traefik_certResolver_primary }}"
+# /role-specific:traefik
+
+########################################################################
+#                                                                      #
+# /linkwarden                                                          #
+#                                                                      #
+########################################################################
+# /role-specific:linkwarden
+
+
+
 # role-specific:listmonk
 ########################################################################
 #                                                                      #
@@ -6912,6 +7198,47 @@ mediawiki_container_labels_traefik_tls_certResolver: "{{ traefik_certResolver_pr
 #                                                                      #
 ########################################################################
 # /role-specific:mediawiki
+
+
+
+# role-specific:meilisearch
+########################################################################
+#                                                                      #
+# meilisearch                                                          #
+#                                                                      #
+########################################################################
+
+meilisearch_enabled: false
+
+meilisearch_identifier: "{{ mash_playbook_service_identifier_prefix }}meilisearch"
+
+meilisearch_base_path: "{{ mash_playbook_base_path }}/{{ mash_playbook_service_base_directory_name_prefix }}meilisearch"
+
+meilisearch_uid: "{{ mash_playbook_uid }}"
+meilisearch_gid: "{{ mash_playbook_gid }}"
+
+meilisearch_container_additional_networks_auto: |
+  {{
+    ([mash_playbook_reverse_proxyable_services_additional_network] if mash_playbook_reverse_proxyable_services_additional_network else [])
+  }}
+
+# Only enable Traefik labels if a hostname is set (indicating that this will be exposed publicly)
+meilisearch_container_labels_traefik_enabled: "{{ mash_playbook_traefik_labels_enabled and meilisearch_hostname | length > 0 }}"
+meilisearch_container_labels_traefik_docker_network: "{{ mash_playbook_reverse_proxyable_services_additional_network }}"
+
+meilisearch_environment_variables_master_key: "{{ '%s' | format(mash_playbook_generic_secret_key) | password_hash('sha512', 'meilisearch.k', rounds=655555) | to_uuid }}"
+
+# role-specific:traefik
+meilisearch_container_labels_traefik_entrypoints: "{{ traefik_entrypoint_primary }}"
+meilisearch_container_labels_traefik_tls_certResolver: "{{ traefik_certResolver_primary }}"
+# /role-specific:traefik
+
+########################################################################
+#                                                                      #
+# /meilisearch                                                         #
+#                                                                      #
+########################################################################
+# /role-specific:meilisearch
 
 
 
@@ -8219,7 +8546,7 @@ pocket_id_base_path: "{{ mash_playbook_base_path }}/{{ mash_playbook_service_bas
 pocket_id_uid: "{{ mash_playbook_uid }}"
 pocket_id_gid: "{{ mash_playbook_gid }}"
 
-pocket_id_systemd_required_services_list: |
+pocket_id_systemd_required_services_list_auto: |
   {{
     ([postgres_identifier ~ '.service'] if postgres_enabled | default(false) and pocket_id_database_hostname == postgres_connection_hostname and pocket_id_database_type == 'postgres' else [])
   }}
@@ -9733,8 +10060,6 @@ tinyauth_container_additional_networks_auto: |
     +
     ([mash_playbook_reverse_proxyable_services_additional_network] if mash_playbook_reverse_proxyable_services_additional_network else [])
   }}
-
-tinyauth_environment_variables_secret: "{{ ('%s' | format(mash_playbook_generic_secret_key) | password_hash('sha512', 'tinyauth.s', rounds=655555)) | b64encode | truncate(length=32, killwords=True, end='', leeway=None) }}"
 
 tinyauth_container_labels_traefik_enabled: "{{ mash_playbook_traefik_labels_enabled }}"
 tinyauth_container_labels_traefik_docker_network: "{{ mash_playbook_reverse_proxyable_services_additional_network }}"
