@@ -1,0 +1,193 @@
+--- a/roles/galaxy/systemd_service_manager/tasks/start.yml
++++ b/roles/galaxy/systemd_service_manager/tasks/start.yml
+@@ -24,60 +24,7 @@
+ - when: devture_systemd_service_manager_service_restart_mode == 'one-by-one'
+   block:
+     - name: Ensure systemd services are restarted one by one (timed)
+-      block:
+-        - name: Set timing log path
+-          ansible.builtin.set_fact:
+-            mash_systemd_timing_log_path: "{{ mash_systemd_timing_log_path | default('/tmp/mash-systemd-timing.' ~ lookup('pipe', 'date -u +%Y%m%dT%H%M%SZ') ~ '.jsonl') }}"
+-
+-        - name: Capture controller t0
+-          ansible.builtin.set_fact:
+-            mash_systemd_timing_ctrl_t0: "{{ lookup('pipe', 'date -u +%s.%N') }}"
+-
+-        - name: Restart systemd service with remote timing
+-          ansible.builtin.shell: |
+-            t0=$(date -u +%s.%N)
+-            systemctl restart {{ mash_systemd_service_item.name | quote }}
+-            rc=$?
+-            t1=$(date -u +%s.%N)
+-            echo "remote_t0=$t0 remote_t1=$t1 rc=$rc"
+-            exit $rc
+-          args:
+-            executable: /bin/bash
+-          register: mash_systemd_timing_remote
+-
+-        - name: Capture controller t1
+-          ansible.builtin.set_fact:
+-            mash_systemd_timing_ctrl_t1: "{{ lookup('pipe', 'date -u +%s.%N') }}"
+-
+-        - name: Build timing record
+-          ansible.builtin.set_fact:
+-            mash_systemd_timing_record:
+-              ts_utc: "{{ lookup('pipe', 'date -u +%Y-%m-%dT%H:%M:%SZ') }}"
+-              inventory_hostname: "{{ inventory_hostname }}"
+-              unit: "{{ mash_systemd_service_item.name }}"
+-              action: restart
+-              ctrl_t0: "{{ mash_systemd_timing_ctrl_t0 }}"
+-              ctrl_t1: "{{ mash_systemd_timing_ctrl_t1 }}"
+-              remote_t0: "{{ mash_systemd_timing_remote.stdout | regex_search('remote_t0=([0-9.]+)', '\\1') }}"
+-              remote_t1: "{{ mash_systemd_timing_remote.stdout | regex_search('remote_t1=([0-9.]+)', '\\1') }}"
+-              rc: "{{ mash_systemd_timing_remote.rc }}"
+-            mash_systemd_timing_record_json: "{{ mash_systemd_timing_record | to_json }}"
+-
+-        - name: Append timing JSONL on controller
+-          ansible.builtin.shell: |
+-            python3 - <<'PY'
+-            import os
+-            path = os.environ["MASH_TIMING_PATH"]
+-            rec = os.environ["MASH_TIMING_JSON"]
+-            with open(path, "a", encoding="utf-8") as f:
+-                f.write(rec)
+-                f.write("\n")
+-            PY
+-          delegate_to: localhost
+-          become: false
+-          environment:
+-            MASH_TIMING_PATH: "{{ mash_systemd_timing_log_path }}"
+-            MASH_TIMING_JSON: "{{ mash_systemd_timing_record_json }}"
++      ansible.builtin.include_tasks: _timed_restart.yml
+       loop: "{{ devture_systemd_service_manager_services_list | sort (attribute='priority,name') }}"
+       loop_control:
+         loop_var: mash_systemd_service_item
+--- a/roles/galaxy/systemd_service_manager/tasks/restart_specified.yml
++++ b/roles/galaxy/systemd_service_manager/tasks/restart_specified.yml
+@@ -40,13 +40,20 @@
+ 
+ - when: devture_systemd_service_manager_service_restart_mode == 'one-by-one'
+   block:
++    - name: Ensure systemd services are restarted one by one (timed)
++      ansible.builtin.include_tasks: _timed_restart.yml
++      loop: "{{ devture_systemd_service_manager_services_list_to_work_with | sort (attribute='priority,name') }}"
++      loop_control:
++        loop_var: mash_systemd_service_item
++      when: mash_systemd_timing_enabled | default(false) | bool and not ansible_check_mode
++
+     - name: Ensure systemd services are restarted one by one
+       ansible.builtin.service:
+         name: "{{ item.name }}"
+         state: restarted
+         enabled: "{{ devture_systemd_service_manager_services_autostart_enabled }}"
+       with_items: "{{ devture_systemd_service_manager_services_list_to_work_with | sort (attribute='priority,name') }}"
+-      when: not ansible_check_mode
++      when: not ansible_check_mode and not (mash_systemd_timing_enabled | default(false) | bool)
+ 
+ - when: devture_systemd_service_manager_up_verification_enabled | bool and devture_systemd_service_manager_services_list_to_work_with | length > 0
+   name: Verify that systemd services started successfully
+--- a/roles/galaxy/systemd_service_manager/tasks/_timed_restart.yml
++++ b/roles/galaxy/systemd_service_manager/tasks/_timed_restart.yml
+@@ -0,0 +1,102 @@
++---
++- name: Set timing log path
++  ansible.builtin.set_fact:
++    mash_systemd_timing_log_path: "{{ mash_systemd_timing_log_path | default('/tmp/mash-systemd-timing.' ~ lookup('pipe', 'date -u +%Y%m%dT%H%M%SZ') ~ '.jsonl') }}"
++  when: mash_systemd_timing_log_path is not defined
++  changed_when: false
++
++- name: Capture controller t0
++  ansible.builtin.set_fact:
++    mash_systemd_timing_ctrl_t0: "{{ lookup('pipe', 'date -u +%s.%N') }}"
++  changed_when: false
++
++- name: Restart systemd service with remote timing
++  ansible.builtin.shell: |
++    t0=$(date -u +%s.%N)
++    systemctl restart {{ mash_systemd_service_item.name | quote }}
++    rc=$?
++    t1=$(date -u +%s.%N)
++    echo "remote_t0=$t0"
++    echo "remote_t1=$t1"
++    echo "rc=$rc"
++    exit $rc
++  args:
++    executable: /bin/bash
++  register: mash_systemd_timing_remote
++  failed_when: false
++  changed_when: false
++
++- name: Capture controller t1
++  ansible.builtin.set_fact:
++    mash_systemd_timing_ctrl_t1: "{{ lookup('pipe', 'date -u +%s.%N') }}"
++  changed_when: false
++
++- name: Cache remote timing output
++  ansible.builtin.set_fact:
++    mash_systemd_timing_remote_stdout: "{{ mash_systemd_timing_remote.stdout | default('') }}"
++    mash_systemd_timing_remote_stderr: "{{ mash_systemd_timing_remote.stderr | default('') }}"
++  changed_when: false
++
++- name: Parse remote timing
++  ansible.builtin.set_fact:
++    mash_systemd_timing_remote_t0: '{{ ((mash_systemd_timing_remote_stdout | regex_findall("remote_t0=([0-9.]+)")) + [none]) | first }}'
++    mash_systemd_timing_remote_t1: '{{ ((mash_systemd_timing_remote_stdout | regex_findall("remote_t1=([0-9.]+)")) + [none]) | first }}'
++    mash_systemd_timing_remote_rc_raw: '{{ ((mash_systemd_timing_remote_stdout | regex_findall("rc=([0-9]+)")) + [none]) | first }}'
++  changed_when: false
++- name: Compute timing metrics
++  ansible.builtin.set_fact:
++    mash_systemd_timing_ctrl_elapsed: "{{ (mash_systemd_timing_ctrl_t1 | float) - (mash_systemd_timing_ctrl_t0 | float) }}"
++    mash_systemd_timing_remote_elapsed: "{{ ((mash_systemd_timing_remote_t1 | float) - (mash_systemd_timing_remote_t0 | float)) if (mash_systemd_timing_remote_t0 is not none and mash_systemd_timing_remote_t1 is not none) else none }}"
++    mash_systemd_timing_remote_rc: "{{ mash_systemd_timing_remote_rc_raw if mash_systemd_timing_remote_rc_raw is not none else mash_systemd_timing_remote.rc }}"
++  changed_when: false
++
++- name: Compute gap
++  ansible.builtin.set_fact:
++    mash_systemd_timing_gap: "{{ (mash_systemd_timing_ctrl_elapsed - mash_systemd_timing_remote_elapsed) if (mash_systemd_timing_ctrl_elapsed is not none and mash_systemd_timing_remote_elapsed is not none) else none }}"
++  changed_when: false
++
++- name: Build timing record
++  ansible.builtin.set_fact:
++    mash_systemd_timing_record:
++      ts_utc: "{{ lookup('pipe', 'date -u +%Y-%m-%dT%H:%M:%SZ') }}"
++      inventory_hostname: "{{ inventory_hostname }}"
++      unit: "{{ mash_systemd_service_item.name }}"
++      action: restart
++      ctrl_t0: "{{ mash_systemd_timing_ctrl_t0 }}"
++      ctrl_t1: "{{ mash_systemd_timing_ctrl_t1 }}"
++      remote_t0: "{{ mash_systemd_timing_remote_t0 }}"
++      remote_t1: "{{ mash_systemd_timing_remote_t1 }}"
++      remote_rc: "{{ mash_systemd_timing_remote_rc | int }}"
++      remote_stdout: '{{ mash_systemd_timing_remote_stdout | replace("\n", "\\n") }}'
++      remote_stderr: '{{ mash_systemd_timing_remote_stderr | replace("\n", "\\n") }}'
++      ctrl_elapsed: "{{ mash_systemd_timing_ctrl_elapsed }}"
++      remote_elapsed: "{{ mash_systemd_timing_remote_elapsed }}"
++      gap: "{{ mash_systemd_timing_gap }}"
++  changed_when: false
++
++- name: Render timing record JSON
++  ansible.builtin.set_fact:
++    mash_systemd_timing_record_json: "{{ mash_systemd_timing_record | to_json }}"
++  changed_when: false
++
++- name: Append timing JSONL on controller
++  ansible.builtin.shell: |
++    python3 - <<'PY'
++    import os
++    path = os.environ["MASH_TIMING_PATH"]
++    rec = os.environ["MASH_TIMING_JSON"]
++    with open(path, "a", encoding="utf-8") as f:
++        f.write(rec)
++        f.write("\n")
++    PY
++  delegate_to: localhost
++  become: false
++  environment:
++    MASH_TIMING_PATH: "{{ mash_systemd_timing_log_path }}"
++    MASH_TIMING_JSON: "{{ mash_systemd_timing_record_json }}"
++  changed_when: false
++
++- name: Fail if systemd restart failed
++  ansible.builtin.fail:
++    msg: "systemctl restart {{ mash_systemd_service_item.name }} failed (rc={{ mash_systemd_timing_remote_rc | int }})"
++  when: (mash_systemd_timing_remote_rc | int) != 0
