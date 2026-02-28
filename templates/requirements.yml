@@ -77,7 +77,7 @@
   name: barassistant
   activation_prefix: barassistant_
 - src: git+https://seed.radicle.garden/z2bgVhWju6shYSwtdKb7v3eoSL1Pt.git
-  version: v2.3.1-0
+  version: v2.3.3-0
   name: bentopdf
   activation_prefix: bentopdf_
 - src: git+https://github.com/mother-of-all-self-hosting/ansible-role-bind.git
@@ -113,7 +113,7 @@
   name: cleanup
   activation_prefix: system_cleanup_
 - src: git+https://github.com/mother-of-all-self-hosting/ansible-role-clickhouse.git
-  version: v26.1.3.52-0
+  version: v26.2.1.1139-0
   name: clickhouse
   activation_prefix: clickhouse_
 - src: git+https://iris.radicle.xyz/zp12kTQqmgqnFpUU6gPyVq19HNMD.git
@@ -245,7 +245,7 @@
   name: filebrowser
   activation_prefix: filebrowser_
 - src: git+https://seed.radicle.garden/z3ALGSKDhVLeMnR49YPXk5yv2yTge.git
-  version: v1.2.0-0
+  version: v1.2.1-0
   name: filebrowser_quantum
   activation_prefix: filebrowser_quantum_
 - src: git+https://github.com/mother-of-all-self-hosting/ansible-role-firezone.git
@@ -321,7 +321,7 @@
   name: healthchecks
   activation_prefix: healthchecks_
 - src: git+https://github.com/mother-of-all-self-hosting/ansible-role-homarr.git
-  version: v1.53.2-0
+  version: v1.54.0-0
   name: homarr
   activation_prefix: homarr_
 - src: git+https://github.com/mother-of-all-self-hosting/ansible-role-hubsite.git
@@ -601,7 +601,7 @@
   name: overseerr
   activation_prefix: overseerr_
 - src: git+https://github.com/mother-of-all-self-hosting/ansible-role-owncast.git
-  version: v0.2.3-6
+  version: v0.2.4-0
   name: owncast
   activation_prefix: owncast_
 - src: git+https://github.com/mother-of-all-self-hosting/ansible-role-oxitraffic.git
@@ -773,7 +773,7 @@
   name: searxng
   activation_prefix: searxng_
 - src: git+https://github.com/mother-of-all-self-hosting/ansible-role-semaphore.git
-  version: v2.17.14-0
+  version: v2.17.15-0
   name: semaphore
   activation_prefix: semaphore_
 - src: git+https://github.com/mother-of-all-self-hosting/ansible-role-send.git
