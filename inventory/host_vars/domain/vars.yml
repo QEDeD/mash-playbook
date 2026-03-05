@@ -323,6 +323,15 @@ collabora_online_environment_variable_password: "{{ vault_collabora_online_env_v
 
 collabora_online_environment_variable_aliasgroup1: "https://{{ nextcloud_hostname | replace('.', '\\.') }}:443"
 
+# Requires a host-side AppArmor profile named `collabora-coolmount`.
+collabora_online_container_extra_arguments_custom:
+  - "--cap-drop=ALL"
+  - "--cap-add=CHOWN"
+  - "--cap-add=FOWNER"
+  - "--cap-add=SYS_CHROOT"
+  - "--cap-add=SYS_ADMIN"
+  - "--security-opt=apparmor=collabora-coolmount"
+
 ########################################################################
 #                                                                      #
 # /collabora-online                                                    #
