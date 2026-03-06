@@ -92,6 +92,8 @@
 - Markdown files should be linted locally after edits.
 - Use the repository lint script in scoped mode (default):
 - `bash ./bin/lint-playbook.sh`
+- To reuse the current `.venv` tool versions without refreshing them, set `LINT_PLAYBOOK_UPGRADE_TOOLS=0`.
+- Example: `LINT_PLAYBOOK_UPGRADE_TOOLS=0 bash ./bin/lint-playbook.sh`
 - To include markdown files explicitly, pass them via `EXTRA_LINT_PATHS`.
 - Example: `EXTRA_LINT_PATHS="docs/ai/agent_workflows.md" bash ./bin/lint-playbook.sh`
 
@@ -106,7 +108,7 @@
 - Example: `LINT_PLAYBOOK_ROLE_PATHS="roles/custom/some-role" bash ./bin/lint-playbook.sh`
 - Full mode:
 - restores broad diagnostics for upstream debt discovery
-- includes repository-wide role lint target paths and matrix Jitsi targets
+- includes discovered repo-owned local role targets when present
 - Example: `LINT_PLAYBOOK_SCOPE=full bash ./bin/lint-playbook.sh`
 - Treat full-mode output as diagnostic by default:
 - classify findings into local actionable changes, upstream baseline debt, and external/vendor findings
