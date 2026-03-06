@@ -979,7 +979,7 @@ qbittorrent_container_torrenting_port: 6881
 
 # Controls whether the container exposes its torrenting port
 # To become an "active node" you'll want to set this and configure port-forwarding in your router
-qbittorrent_container_torrenting_bind_port: "{{ qbittorrent_container_torrenting_port }}"
+qbittorrent_container_torrenting_host_bind_port: "{{ qbittorrent_container_torrenting_port }}"
 
 ########################################################################
 #                                                                      #
