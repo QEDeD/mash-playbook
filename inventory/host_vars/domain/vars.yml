@@ -850,7 +850,7 @@ headscale_config_dns_search_domains:
 headscale_config_prefixes_v4: 100.100.0.0/20
 
 headscale_config_oidc_enabled: true
-headscale_config_oidc_only_start_if_oidc_is_available: true
+headscale_config_oidc_only_start_if_oidc_is_available: false
 headscale_config_oidc_issuer: "https://authentik.{{ domain }}/application/o/headscale/"
 headscale_config_oidc_client_id: "{{ vault_headscale_client_id }}"
 headscale_config_oidc_client_secret: "{{ vault_headscale_client_secret }}"
