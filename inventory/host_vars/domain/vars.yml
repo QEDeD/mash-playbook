@@ -28,6 +28,18 @@ mash_playbook_generic_secret_key: "{{ vault_mash_playbook_generic_secret_key }}"
 # Allow extra time for slow services to start before verification.
 devture_systemd_service_manager_up_verification_delay_seconds: 25
 
+# Restart services in priority batches so earlier dependencies are scheduled
+# ahead of application services.
+devture_systemd_service_manager_service_restart_mode: priority-batched
+
+# Run Authentik ahead of the general application wave so OIDC-dependent
+# services start in a later batch.
+devture_systemd_service_manager_services_list_auto_overrides:
+  mash-authentik-server.service:
+    priority: 1500
+  mash-authentik-worker.service:
+    priority: 1500
+
 ########################################################################
 #                                                                      #
 # /systemd_service_manager                                             #
