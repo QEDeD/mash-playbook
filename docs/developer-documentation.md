@@ -116,13 +116,6 @@ mash_playbook_devture_systemd_service_manager_services_list_auto_itemized:
 ```
 </details>
 
-Default restart ordering belongs in the generated
-`mash_playbook_devture_systemd_service_manager_services_list_auto_itemized` entry.
-Operator-specific reprioritization should not patch the template. Use
-`devture_systemd_service_manager_services_list_auto_overrides` from inventory to
-override `priority`, `restart_necessary`, or `groups` for an auto-managed service
-by name.
-
 **Optional**:
 
 Please wire your role to other services than `systemd_service_manager` if necessary.
