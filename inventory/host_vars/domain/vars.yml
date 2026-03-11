@@ -27,7 +27,7 @@ domain: "{{ vault_domain }}"
 ########################################################################
 
 # Allow extra time for slow services to start before verification.
-devture_systemd_service_manager_up_verification_delay_seconds: 25
+devture_systemd_service_manager_up_verification_delay_seconds: 35
 
 # Restart services in priority batches so earlier dependencies are scheduled
 # ahead of application services.
