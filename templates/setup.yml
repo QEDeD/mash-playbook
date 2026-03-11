@@ -177,6 +177,10 @@
     - role: galaxy/bitmagnet
     # /role-specific:bitmagnet
 
+    # role-specific:borg_ui
+    - role: galaxy/borg_ui
+    # /role-specific:borg_ui
+
     # role-specific:browserless
     - role: galaxy/browserless
     # /role-specific:browserless
@@ -184,6 +188,10 @@
     # role-specific:calibre_web
     - role: galaxy/calibre_web
     # /role-specific:calibre_web
+
+    # role-specific:calibre_web_automated
+    - role: galaxy/calibre_web_automated
+    # /role-specific:calibre_web_automated
 
     # role-specific:cap
     - role: galaxy/cap

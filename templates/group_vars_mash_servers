@@ -209,6 +209,11 @@ mash_playbook_devture_systemd_service_manager_services_list_auto_itemized:
     {{ ({'name': (bitmagnet_identifier + '.service'), 'priority': 2000, 'restart_necessary': (bitmagnet_restart_necessary | bool), 'groups': ['mash', 'bitmagnet']} if bitmagnet_enabled else omit) }}
   # /role-specific:bitmagnet
 
+  # role-specific:borg_ui
+  - |-
+    {{ ({'name': (borg_ui_identifier + '.service'), 'priority': 2000, 'restart_necessary': (borg_ui_restart_necessary | bool), 'groups': ['mash', 'borg-ui']} if borg_ui_enabled else omit) }}
+  # /role-specific:borg_ui
+
   # role-specific:browserless
   - |-
     {{ ({'name': (browserless_identifier + '.service'), 'priority': 2000, 'restart_necessary': (browserless_restart_necessary | bool), 'groups': ['mash', 'browserless']} if browserless_enabled else omit) }}
@@ -218,6 +223,11 @@ mash_playbook_devture_systemd_service_manager_services_list_auto_itemized:
   - |-
     {{ ({'name': (calibre_web_identifier + '.service'), 'priority': 2000, 'restart_necessary': (calibre_web_restart_necessary | bool), 'groups': ['mash', 'calibre-web']} if calibre_web_enabled else omit) }}
   # /role-specific:calibre_web
+
+  # role-specific:calibre_web_automated
+  - |-
+    {{ ({'name': (calibre_web_automated_identifier + '.service'), 'priority': 2000, 'restart_necessary': (calibre_web_automated_restart_necessary | bool), 'groups': ['mash', 'calibre-web-automated']} if calibre_web_automated_enabled else omit) }}
+  # /role-specific:calibre_web_automated
 
   # role-specific:cap
   - |-
@@ -325,7 +335,7 @@ mash_playbook_devture_systemd_service_manager_services_list_auto_itemized:
 
   # role-specific:dokuwiki
   - |-
-    {{ ({'name': (dokuwiki_identifier + '.service'), 'priority': 2000, 'restart_necessary': true, 'groups': ['mash', 'dokuwiki']} if dokuwiki_enabled else omit) }}
+    {{ ({'name': (dokuwiki_identifier + '.service'), 'priority': 2000, 'restart_necessary': (dokuwiki_restart_necessary | bool), 'groups': ['mash', 'dokuwiki']} if dokuwiki_enabled else omit) }}
   # /role-specific:dokuwiki
 
   # role-specific:duplicati
@@ -3375,6 +3385,8 @@ backup_borg_systemd_required_services_list_auto: |
   {{
     ([mariadb_identifier ~ '.service'] if mariadb_enabled | default(false) and backup_borg_mysql_enabled else [])
     +
+    ([mongodb_identifier ~ '.service'] if mongodb_enabled | default(false) and backup_borg_mongodb_enabled else [])
+    +
     ([postgres_identifier ~ '.service'] if postgres_enabled | default(false) and backup_borg_postgresql_enabled else [])
   }}
 
@@ -3385,6 +3397,8 @@ backup_borg_location_exclude_patterns: |
     ([postgres_data_path] if postgres_enabled | default(false) and backup_borg_postgresql_enabled else [])
   }}
 
+backup_borg_mariadb_enabled: "{{ mariadb_enabled | default(false) }}"
+backup_borg_mongodb_enabled: "{{ mongodb_enabled | default(false) }}"
 backup_borg_mysql_enabled: "{{ mariadb_enabled | default(false) }}"
 backup_borg_postgresql_enabled: "{{ postgres_enabled | default(false) }}"
 
@@ -3396,12 +3410,21 @@ backup_borg_location_source_directories_auto:
   - "{{ mash_playbook_base_path }}"
 
 # role-specific:mariadb
+# TODO: Use `backup_borg_mariadb_*` variables; see https://torsion.org/borgmatic/reference/configuration/data-sources/mariadb/
 backup_borg_mysql_databases_hostname: "{{ mariadb_connection_hostname if mariadb_enabled | default(false) else '' }}"
 backup_borg_mysql_databases_port: "{{ mariadb_connection_port if mariadb_enabled | default(false) else '3306' }}"
 backup_borg_mysql_databases_password: "{{ mariadb_root_password if mariadb_enabled | default(false) else '' }}"
 backup_borg_mysql_databases_username: "root"
 backup_borg_mysql_databases_auto: "{{ mariadb_managed_databases | map(attribute='name') if mariadb_enabled | default(false) else [] }}"
 # /role-specific:mariadb
+
+# role-specific:mongodb
+backup_borg_mongodb_databases_hostname: "{{ mongodb_connection_hostname if mongodb_enabled | default(false) else '' }}"
+backup_borg_mongodb_databases_port: "{{ mongodb_connection_port if mongodb_enabled | default(false) else '27017' }}"
+backup_borg_mongodb_databases_username: "root"
+backup_borg_mongodb_databases_password: "{{ mongodb_root_password if mongodb_enabled | default(false) else '' }}"
+backup_borg_mongodb_databases_auto: "{{ mongodb_managed_databases | map(attribute='name') if mongodb_enabled | default(false) else [] }}"
+# /role-specific:mongodb
 
 # role-specific:postgres
 backup_borg_postgresql_databases_hostname: "{{ postgres_connection_hostname if postgres_enabled | default(false) else '' }}"
@@ -3625,6 +3648,46 @@ bitmagnet_container_labels_traefik_tls_certResolver: "{{ traefik_certResolver_pr
 
 
 
+# role-specific:borg_ui
+########################################################################
+#                                                                      #
+# borg_ui                                                              #
+#                                                                      #
+########################################################################
+
+borg_ui_enabled: false
+
+borg_ui_identifier: "{{ mash_playbook_service_identifier_prefix }}borg-ui"
+
+borg_ui_base_path: "{{ mash_playbook_base_path }}/{{ mash_playbook_service_base_directory_name_prefix }}borg-ui"
+
+borg_ui_uid: "{{ mash_playbook_uid }}"
+borg_ui_gid: "{{ mash_playbook_gid }}"
+
+borg_ui_container_additional_networks_auto: |
+  {{
+    ([mash_playbook_reverse_proxyable_services_additional_network] if mash_playbook_reverse_proxyable_services_additional_network else [])
+  }}
+
+borg_ui_environment_variables_secret_key: "{{ (mash_playbook_generic_secret_key + ':borg_ui') | hash('sha512') | to_uuid }}"
+
+borg_ui_container_labels_traefik_enabled: "{{ mash_playbook_traefik_labels_enabled }}"
+borg_ui_container_labels_traefik_docker_network: "{{ mash_playbook_reverse_proxyable_services_additional_network }}"
+
+# role-specific:traefik
+borg_ui_container_labels_traefik_entrypoints: "{{ traefik_entrypoint_primary }}"
+borg_ui_container_labels_traefik_tls_certResolver: "{{ traefik_certResolver_primary }}"
+# /role-specific:traefik
+
+########################################################################
+#                                                                      #
+# /borg_ui                                                             #
+#                                                                      #
+########################################################################
+# /role-specific:borg_ui
+
+
+
 # role-specific:browserless
 ########################################################################
 #                                                                      #
@@ -3702,6 +3765,46 @@ calibre_web_container_labels_traefik_tls_certResolver: "{{ traefik_certResolver_
 #                                                                      #
 ########################################################################
 # /role-specific:calibre_web
+
+
+
+# role-specific:calibre_web_automated
+########################################################################
+#                                                                      #
+# calibre_web_automated                                                #
+#                                                                      #
+########################################################################
+
+calibre_web_automated_enabled: false
+
+calibre_web_automated_identifier: "{{ mash_playbook_service_identifier_prefix }}calibre-web-automated"
+
+calibre_web_automated_base_path: "{{ mash_playbook_base_path }}/{{ mash_playbook_service_base_directory_name_prefix }}calibre-web-automated"
+
+calibre_web_automated_uid: "{{ mash_playbook_uid }}"
+calibre_web_automated_gid: "{{ mash_playbook_gid }}"
+
+calibre_web_automated_container_additional_networks_auto: |
+  {{
+    ([exim_relay_container_network | default('mash-exim-relay')] if (exim_relay_enabled | default(false) and calibre_web_automated_container_network != exim_relay_container_network) else [])
+    +
+    ([mash_playbook_reverse_proxyable_services_additional_network] if mash_playbook_reverse_proxyable_services_additional_network else [])
+  }}
+
+calibre_web_automated_container_labels_traefik_enabled: "{{ mash_playbook_traefik_labels_enabled }}"
+calibre_web_automated_container_labels_traefik_docker_network: "{{ mash_playbook_reverse_proxyable_services_additional_network }}"
+
+# role-specific:traefik
+calibre_web_automated_container_labels_traefik_entrypoints: "{{ traefik_entrypoint_primary }}"
+calibre_web_automated_container_labels_traefik_tls_certResolver: "{{ traefik_certResolver_primary }}"
+# /role-specific:traefik
+
+########################################################################
+#                                                                      #
+# /calibre_web_automated                                               #
+#                                                                      #
+########################################################################
+# /role-specific:calibre_web_automated
 
 
 
@@ -4554,13 +4657,10 @@ dokuwiki_base_path: "{{ mash_playbook_base_path }}/{{ mash_playbook_service_base
 dokuwiki_uid: "{{ mash_playbook_uid }}"
 dokuwiki_gid: "{{ mash_playbook_gid }}"
 
-dokuwiki_systemd_required_services_list: |
-  {{
-    ([devture_systemd_docker_base_docker_service_name] if devture_systemd_docker_base_docker_service_name else [])
-  }}
-
 dokuwiki_container_additional_networks_auto: |
   {{
+    ([exim_relay_container_network | default('mash-exim-relay')] if exim_relay_enabled | default(false) and dokuwiki_container_network != exim_relay_container_network else [])
+    +
     ([mash_playbook_reverse_proxyable_services_additional_network] if mash_playbook_reverse_proxyable_services_additional_network else [])
   }}
 
