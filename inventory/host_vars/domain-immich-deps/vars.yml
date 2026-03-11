@@ -46,7 +46,8 @@ valkey_enabled: true
 postgres_enabled: true
 
 # Must be set in vault before running remote apply commands
-postgres_connection_password: "{{ vault_immich_deps_postgres_connection_password }}"
+immich_deps_postgres_connection_password: "{{ vault_immich_deps_postgres_connection_password }}"
+postgres_connection_password: "{{ immich_deps_postgres_connection_password }}"
 
 postgres_container_image_registry_prefix_upstream_default: ghcr.io/
 postgres_container_image_name: immich-app/postgres

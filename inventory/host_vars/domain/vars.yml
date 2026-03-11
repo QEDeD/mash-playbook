@@ -12,6 +12,7 @@
 # Put a strong secret below, generated with `pwgen -s 64 1` or in another way
 # Various other secrets will be derived from this secret automatically.
 mash_playbook_generic_secret_key: "{{ vault_mash_playbook_generic_secret_key }}"
+domain: "{{ vault_domain }}"
 
 ########################################################################
 #                                                                      #
@@ -27,6 +28,18 @@ mash_playbook_generic_secret_key: "{{ vault_mash_playbook_generic_secret_key }}"
 
 # Allow extra time for slow services to start before verification.
 devture_systemd_service_manager_up_verification_delay_seconds: 25
+
+# Restart services in priority batches so earlier dependencies are scheduled
+# ahead of application services.
+devture_systemd_service_manager_service_restart_mode: priority-batched
+
+# Run Authentik ahead of the general application wave so OIDC-dependent
+# services start in a later batch.
+devture_systemd_service_manager_services_list_auto_overrides:
+  mash-authentik-server.service:
+    priority: 1500
+  mash-authentik-worker.service:
+    priority: 1500
 
 ########################################################################
 #                                                                      #
@@ -46,9 +59,10 @@ system_security_ssh_enabled: true
 
 system_security_ssh_services: ['ssh']
 
+ansible_ssh_port: "{{ vault_ansible_ssh_port }}"
 system_security_ssh_port: "{{ ansible_ssh_port }}"
 
-system_security_ssh_authorizedkeys_host: ["{{ ssh_key_1 }}", "{{ ssh_key_2 }}"]  # list of authorized public keys
+system_security_ssh_authorizedkeys_host: ["{{ vault_ssh_key_1 }}", "{{ vault_ssh_key_2 }}"]  # list of authorized public keys
 system_security_ssh_unauthorizedkeys_host: []  # list of unauthorized/revoked public keys
 system_security_ssh_allow_tcp_forwarding: true
 # /SSH
@@ -179,11 +193,34 @@ traefik_config_entrypoint_web_transport_respondingTimeouts_idleTimeout: 1800s  #
 postgres_enabled: true
 
 # Put a strong password below, generated with `pwgen -s 64 1` or in another way
-postgres_connection_password: "{{ vault_devture_postgres_connection_password }}"
+postgres_connection_password: "{{ vault_postgres_connection_password }}"
 
 ########################################################################
 #                                                                      #
 # /devture-postgres                                                    #
+#                                                                      #
+########################################################################
+
+
+########################################################################
+#                                                                      #
+# mail / exim_relay                                                    #
+#                                                                      #
+########################################################################
+
+exim_relay_enabled: true
+exim_relay_hostname: "{{ domain }}"
+exim_relay_sender_address: "{{ vault_exim_relay_sender_address }}"
+exim_relay_relay_use: true
+exim_relay_relay_host_name: "{{ vault_exim_relay_relay_host_name }}"
+exim_relay_relay_host_port: "{{ vault_exim_relay_relay_host_port | int }}"
+exim_relay_relay_auth: true
+exim_relay_relay_auth_username: "{{ vault_exim_relay_relay_auth_username }}"
+exim_relay_relay_auth_password: "{{ vault_exim_relay_relay_auth_password }}"
+
+########################################################################
+#                                                                      #
+# /mail / exim_relay                                                   #
 #                                                                      #
 ########################################################################
 
@@ -260,41 +297,6 @@ nextcloud_config_parameter_default_phone_region: DK
 nextcloud_config_parameter_default_timezone: Europe/Copenhagen
 nextcloud_config_parameter_maintenance_window_start: 3
 
-nextcloud_config_parameters_custom:
-  - key: mail_smtpmode
-    value: "{{ vault_mail_smtp_mode }}"
-    type: string
-  - key: mail_sendmailmode
-    value: "{{ vault_mail_smtp_mode }}"
-    type: string
-  - key: mail_from_address
-    value: "{{ vault_mail_smtp_address }}"
-    type: string
-  - key: mail_domain
-    value: "{{ domain }}"
-    type: string
-  - key: mail_smtphost
-    value: "{{ vault_mail_smtp_host }}"
-    type: string
-  - key: mail_smtpport
-    value: "{{ vault_mail_smtp_port | int }}"
-    type: integer
-  - key: mail_smtpsecure
-    value: "{{ vault_mail_smtp_secure }}"
-    type: string
-  - key: mail_smtpauth
-    value: 1
-    type: integer
-  - key: mail_smtpname
-    value: "{{ vault_mail_smtp_address }}@{{ domain }}"
-    type: string
-  - key: mail_smtppassword
-    value: "{{ vault_mail_smtp_password }}"
-    type: string
-  - key: mail_smtpauthtype
-    value: "LOGIN"
-    type: string
-
 # Specify the maximum size of the preview in pixels
 nextcloud_preview_preview_max_x: "2048"
 nextcloud_preview_preview_max_y: "2048"
@@ -319,7 +321,7 @@ collabora_online_enabled: true
 collabora_online_hostname: "collabora.{{ domain }}"
 
 # A password for the admin interface, available at: https://COLLABORA_ONLINE_DOMAIN/browser/dist/admin/admin.html
-collabora_online_environment_variable_password: "{{ vault_collabora_online_env_variable_password }}"
+collabora_online_environment_variable_password: "{{ vault_collabora_online_environment_variable_password }}"
 
 collabora_online_environment_variable_aliasgroup1: "https://{{ nextcloud_hostname | replace('.', '\\.') }}:443"
 
@@ -747,16 +749,7 @@ authentik_enabled: true
 authentik_hostname: "authentik.{{ domain }}"
 
 # Put a strong secret below, generated with `pwgen -s 64 1` or in another way
-authentik_secret_key: "{{ authentik_secret_key_vault }}"
-
-## Mailing
-authentik_email_host: "{{ vault_mail_smtp_host }}"
-authentik_email_port: "{{ vault_mail_smtp_port }}"
-authentik_email_username: "{{ vault_mail_smtp_address }}@{{ domain }}"
-authentik_email_password: "{{ vault_mail_smtp_password }}"
-authentik_email_use_tls: "{{ vault_mail_smtp_tls }}"
-authentik_email_use_ssl: "{{ vault_mail_smtp_ssl }}"
-authentik_email_from: "{{ vault_mail_smtp_address }}@{{ domain }}"
+authentik_secret_key: "{{ vault_authentik_secret_key }}"
 
 ########################################################################
 #                                                                      #
@@ -852,8 +845,8 @@ headscale_config_prefixes_v4: 100.100.0.0/20
 headscale_config_oidc_enabled: true
 headscale_config_oidc_only_start_if_oidc_is_available: false
 headscale_config_oidc_issuer: "https://authentik.{{ domain }}/application/o/headscale/"
-headscale_config_oidc_client_id: "{{ vault_headscale_client_id }}"
-headscale_config_oidc_client_secret: "{{ vault_headscale_client_secret }}"
+headscale_config_oidc_client_id: "{{ vault_headscale_config_oidc_client_id }}"
+headscale_config_oidc_client_secret: "{{ vault_headscale_config_oidc_client_secret }}"
 headscale_config_oidc_pkce_enabled: true
 headscale_config_oidc_pkce_method: S256
 
@@ -898,8 +891,8 @@ headscale_config_policy_mode: database
 neko_enabled: true
 neko_hostname: "neko.{{ domain }}"
 
-neko_environment_variables_neko_member_multiuser_admin_password: "{{ vault_neko_admin_pw }}"
-neko_environment_variables_neko_member_multiuser_user_password: "{{ vault_neko_user_pw }}"
+neko_environment_variables_neko_member_multiuser_admin_password: "{{ vault_neko_environment_variables_neko_member_multiuser_admin_password }}"
+neko_environment_variables_neko_member_multiuser_user_password: "{{ vault_neko_environment_variables_neko_member_multiuser_user_password }}"
 
 ########################################################################
 #                                                                      #
@@ -1034,8 +1027,8 @@ sftpgo_enabled: true
 sftpgo_hostname: "ftp.{{ domain }}"
 sftpgo_environment_variables_httpd_bindings_0_enable_web_admin: true
 sftpgo_environment_variables_data_provider_create_default_admin: true
-sftpgo_environment_variables_sftpgo_default_admin_username: "{{ vault_sftpgo_default_admin_username }}"
-sftpgo_environment_variables_sftpgo_default_admin_password: "{{ vault_sftpgo_default_admin_password }}"
+sftpgo_environment_variables_sftpgo_default_admin_username: "{{ vault_sftpgo_environment_variables_sftpgo_default_admin_username }}"
+sftpgo_environment_variables_sftpgo_default_admin_password: "{{ vault_sftpgo_environment_variables_sftpgo_default_admin_password }}"
 
 ########################################################################
 #                                                                      #
