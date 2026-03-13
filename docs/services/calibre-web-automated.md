@@ -1,8 +1,21 @@
 <!--
-SPDX-FileCopyrightText: 2024 Slavi Pantaleev
+SPDX-FileCopyrightText: 2020 Aaron Raimist
+SPDX-FileCopyrightText: 2020 Chris van Dijk
+SPDX-FileCopyrightText: 2020 Dominik Zajac
+SPDX-FileCopyrightText: 2020 Mickaël Cornière
+SPDX-FileCopyrightText: 2020-2024 MDAD project contributors
+SPDX-FileCopyrightText: 2020-2024 Slavi Pantaleev
+SPDX-FileCopyrightText: 2022 François Darveau
+SPDX-FileCopyrightText: 2022 Julian Foad
+SPDX-FileCopyrightText: 2022 Warren Bailey
+SPDX-FileCopyrightText: 2023 Antonis Christofides
+SPDX-FileCopyrightText: 2023 Felix Stupp
+SPDX-FileCopyrightText: 2023 Julian-Samuel Gebühr
+SPDX-FileCopyrightText: 2023 Pierre 'McFly' Marty
+SPDX-FileCopyrightText: 2024 Thomas Miceli
 SPDX-FileCopyrightText: 2024 noah
 SPDX-FileCopyrightText: 2024, 2025 MASH project contributors
-SPDX-FileCopyrightText: 2025, 2026 Suguru Hirahara
+SPDX-FileCopyrightText: 2024-2026 Suguru Hirahara
 
 SPDX-License-Identifier: AGPL-3.0-or-later
 -->
@@ -24,6 +37,7 @@ For details about configuring the [Ansible role for Calibre-Web Automated](https
 This service requires the following other services:
 
 - [Traefik](traefik.md) reverse-proxy server
+- (optional) [exim-relay](exim-relay.md) mailer
 
 ## Adjusting the playbook configuration
 
@@ -127,7 +141,7 @@ After running the command for installation, the Calibre-Web Automated instance b
 
 See [this section](https://app.radicle.xyz/nodes/seed.radicle.garden/rad%3AzSfEaojv4NnFnivPm248Lx123CNe/tree/docs/configuring-calibre-web-automated.md#usage) for details about setting up the instance.
 
-### Configure the SMTP server (optional)
+### Configuring the mailer (optional)
 
 On Calibre-Web Automated you can add configuration settings of a SMTP server to let the service send email to terminals like Kindle and Pocketbook. If you enable the [exim-relay](exim-relay.md) service in your inventory configuration, the playbook will automatically configure it as a mailer for the service.
 
@@ -144,6 +158,9 @@ To set up with the default exim-relay settings, open `https://cwa.example.com/ad
 - **From Email**: (Input the email address specified to `exim_relay_sender_address` on your `vars.yml`)
 
 After setting the configuration, you can have the Calibre-Web Automated instance send a test mail to the mail address specified to your account.
+
+>[!WARNING]
+> Without setting an authentication method such as DKIM, SPF, and DMARC for your hostname, emails are most likely to be quarantined as spam at recipient's mail servers. The worst scenario is that your server's IP address or hostname will be included in the spam list such as the one managed by [Spamhaus](https://www.spamhaus.org/), depending on the reputation. As the exim-relay service supports DKIM signing, refer to [the role's documentation](https://github.com/mother-of-all-self-hosting/ansible-role-exim-relay/blob/main/docs/configuring-exim-relay.md#enable-dkim-support-optional) for details about how to set it up.
 
 ## Troubleshooting
 

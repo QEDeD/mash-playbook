@@ -89,7 +89,7 @@
   name: bitmagnet
   activation_prefix: bitmagnet_
 - src: git+https://seed.radicle.garden/zxNS7XeayGimb4WFfvqmasiZZC3v.git
-  version: v1.73.0-1
+  version: v1.74.0-0
   name: borg_ui
   activation_prefix: borg_ui_
 - src: git+https://github.com/mother-of-all-self-hosting/ansible-role-browserless.git
@@ -113,7 +113,7 @@
   name: changedetection
   activation_prefix: changedetection_
 - src: git+https://github.com/mother-of-all-self-hosting/ansible-role-cinny.git
-  version: v4.10.5-0
+  version: v4.11.1-0
   name: cinny
   activation_prefix: cinny_
 - src: git+https://github.com/mother-of-all-self-hosting/ansible-role-cleanup.git
@@ -297,7 +297,7 @@
   name: funkwhale
   activation_prefix: funkwhale_
 - src: git+https://github.com/mother-of-all-self-hosting/ansible-role-ghostfolio.git
-  version: v2.248.0-0
+  version: v2.249.0-0
   name: ghostfolio
   activation_prefix: ghostfolio_
 - src: git+https://github.com/mother-of-all-self-hosting/ansible-role-gitea.git
@@ -477,7 +477,7 @@
   name: mediawiki
   activation_prefix: mediawiki_
 - src: git+https://github.com/mother-of-all-self-hosting/ansible-role-meilisearch.git
-  version: v1.38.0-0
+  version: v1.38.2-0
   name: meilisearch
   activation_prefix: meilisearch_
 - src: git+https://seed.radicle.garden/z2arPcue4GZ6G6FY3gZexsJXqHyDs.git
@@ -557,7 +557,7 @@
   name: nocdnbs
   activation_prefix: nocdnbs_
 - src: git+https://seed.radicle.garden/z2K9dPANyrXJY7juE9XecXyernA6h.git
-  version: v4.9.1-0
+  version: v4.9.2-0
   name: nodebb
   activation_prefix: nodebb_
 - src: git+https://codeberg.org/moanos/ansible-role-notfellchen.git
@@ -644,6 +644,10 @@
   version: v5.2.3-2
   name: phpmyadmin
   activation_prefix: phpmyadmin_
+- src: git+https://seed.progressiv.dev/zKNyeEtymCZc7yio6JnHxY2AteZu.git
+  version: v0.8.2-0
+  name: pinepods
+  activation_prefix: pinepods_
 - src: git+https://github.com/mother-of-all-self-hosting/ansible-role-plausible.git
   version: v3.2.0-1
   name: plausible
@@ -741,7 +745,7 @@
   name: radicle_httpd
   activation_prefix: radicle_httpd_
 - src: git+https://seed.radicle.garden/z28JTUhepmbS3hLZyUeEvXeqk9QW5.git
-  version: v1.6.1-1
+  version: v1.6.1-2
   name: radicle_node
   activation_prefix: radicle_node_
 - src: git+https://github.com/mother-of-all-self-hosting/ansible-role-reactflux
@@ -885,7 +889,7 @@
   name: timesync
   activation_prefix: devture_timesync_
 - src: git+https://seed.radicle.garden/zLMiPKSyMcb5m85H2brZd4GHCDTF.git
-  version: v5.0.2-0
+  version: v5.0.3-0
   name: tinyauth
   activation_prefix: tinyauth_
 - src: git+https://github.com/mother-of-all-self-hosting/ansible-role-traefik.git
@@ -949,7 +953,7 @@
   name: woodpecker_ci_server
   activation_prefix: woodpecker_ci_server_
 - src: git+https://github.com/mother-of-all-self-hosting/ansible-role-wordpress
-  version: v6.9.2-0
+  version: v6.9.4-0
   name: wordpress
   activation_prefix: wordpress_
 - src: git+https://seed.radicle.garden/z2i8BkHXzRvK1ZtGwHuvLACRswXgA.git
