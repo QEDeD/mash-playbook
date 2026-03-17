@@ -128,6 +128,17 @@
 - intentionally patching/forking that role
 - preparing a dedicated upstream PR for the role/playbook
 
+## Upstream Role Contribution
+
+- For upstream role PRs, upstream PR refreshes, and new-role contribution work,
+  also follow `docs/ai/upstream_role_contribution.md`.
+- Before push or PR update, verify the branch is based on
+  `upstream/<default>` and that the diff against `upstream/<default>` does not
+  contain fork-tracked support paths unless the task explicitly intends to
+  upstream them.
+- If the branch changed materially after review started, refresh the PR body
+  and add a short top-level comment.
+
 ## Pre-Flight and Finalization
 
 - Before suggesting remote-impact execution, run local pre-flight checks:

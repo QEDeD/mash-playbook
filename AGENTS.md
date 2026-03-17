@@ -47,7 +47,8 @@ Operator mode may edit these paths by default:
 
 - `inventory/**`
 - `docs/ai/**` (support documentation for agents/operators)
-- `.codex/**` (Codex config/skills, if present)
+- `.agents/skills/**` (repo-local Codex skills, if present)
+- `.codex/**` (repo-local Codex config/support, if present)
 - `plans/**` (execution plans, if used)
 - `AGENTS.md`
 - Operator mode may create missing files/directories under operator-owned local
@@ -61,6 +62,8 @@ requests edits or opts into contributor mode.
 - Workflow contract: gather -> plan -> apply -> verify.
 - Use structured planning only when required by `Planning threshold`.
 - Planning templates and reporting format: `docs/ai/agent_workflows.md`.
+- For upstream role PRs or new-role contribution work, also use
+  `docs/ai/upstream_role_contribution.md`.
 - Do not execute destructive or broad remote-impact actions before prerequisite
   planning items are complete.
 
@@ -115,6 +118,19 @@ Mini-plan (brief bullets) is sufficient for:
 - create/switch to a dedicated branch first
 - unless the user explicitly requests edits on primary branch
 - Operator-owned paths can be edited on any branch.
+
+## Fork-Tracked Support Paths and Upstream PR Hygiene
+
+- `AGENTS.md`, `docs/ai/**`, `.agents/skills/**`, `.codex/**`,
+  `local-notes/**`, and `plans/**`
+  are fork-tracked support paths and are not automatically upstreamable.
+- Upstream-facing branches must not contain changes to those paths unless the
+  task explicitly intends to upstream support files.
+- Upstream contribution branches must start from `upstream/<default-branch>` or
+  a clean `upstreamable/*` branch rebased onto it, not from a fork-maintenance
+  branch carrying support-file deltas.
+- If a branch starts from the wrong base, rebuild it from
+  `upstream/<default-branch>` and reapply only upstream-intended commits.
 
 ## Non-editable or managed paths
 
@@ -314,4 +330,5 @@ If multiple related repos are present in the workspace:
 - `docs/uninstalling.md`
 - `docs/ai/README.md`
 - `docs/ai/agent_workflows.md`
+- `docs/ai/upstream_role_contribution.md`
 - `docs/ai/vault-operations.md`
