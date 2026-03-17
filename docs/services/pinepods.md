@@ -33,6 +33,7 @@ For details about configuring the [Ansible role for PinePods](https://app.radicl
 
 This service requires the following other services:
 
+- [Postgres](postgres.md) / [MariaDB](mariadb.md) database
 - [Traefik](traefik.md) reverse-proxy server
 - (optional) [exim-relay](exim-relay.md) mailer — PinePods is compatible with other email delivery services
 - (optional) [Gotify](gotify.md)
@@ -62,6 +63,10 @@ pinepods_hostname: pinepods.example.com
 ```
 
 **Note**: hosting PinePods under a subpath (by configuring the `pinepods_path_prefix` variable) does not seem to be possible due to PinePods's technical limitations.
+
+### Select database to use
+
+It is necessary to select a database used by PinePods from MariaDB and Postgres. See [this section](https://app.radicle.xyz/nodes/seed.radicle.garden/rad%3AzKNyeEtymCZc7yio6JnHxY2AteZu/tree/docs/configuring-pinepods.md#specify-database) on the role's documentation for details.
 
 ### Configuring Valkey (optional)
 
@@ -167,11 +172,11 @@ Having configured `vars.yml` for the dedicated instance, add the following confi
 pinepods_redis_hostname: mash-pinepods-valkey
 
 # Make sure the PinePods server service (mash-pinepods-server.service) starts after its dedicated Valkey service (mash-pinepods-valkey.service)
-pinepods_server_systemd_required_services_list_custom:
+pinepods_systemd_required_services_list_custom:
   - "mash-pinepods-valkey.service"
 
 # Make sure the PinePods server container is connected to the container network of its dedicated Valkey service (mash-pinepods-valkey)
-pinepods_server_container_additional_networks_custom:
+pinepods_container_additional_networks_custom:
   - "mash-pinepods-valkey"
 
 ########################################################################
@@ -217,11 +222,11 @@ valkey_enabled: true
 pinepods_redis_hostname: "{{ valkey_identifier }}"
 
 # Make sure the PinePods server service (mash-pinepods-server.service) starts after the shared Valkey service (mash-valkey.service)
-pinepods_server_systemd_required_services_list_custom:
+pinepods_systemd_required_services_list_custom:
   - "{{ valkey_identifier }}.service"
 
 # Make sure the PinePods server container is connected to the container network of the shared Valkey service (mash-valkey)
-pinepods_server_container_additional_networks_custom:
+pinepods_container_additional_networks_custom:
   - "{{ valkey_identifier }}"
 
 ########################################################################
@@ -242,6 +247,10 @@ Note that running the `just` commands for installation (`just install-all` or `j
 ## Usage
 
 After installation, the PinePods instance becomes available at the URL specified with `pinepods_hostname`. With the configuration above, the service is hosted at `https://pinepods.example.com`.
+
+To get started, open the URL with a web browser to create an account. **Note that the first registered user becomes an administrator automatically.**
+
+See [this page](https://www.pinepods.online/docs/tutorial-basics/AdjustingUserSettings) on the documentation about its usage.
 
 ### Configuring the mailer (optional)
 
