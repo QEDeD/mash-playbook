@@ -109,9 +109,13 @@
   name: cap
   activation_prefix: cap_
 - src: git+https://github.com/mother-of-all-self-hosting/ansible-role-changedetection.git
-  version: v0.54.5-0
+  version: v0.54.6-0
   name: changedetection
   activation_prefix: changedetection_
+- src: git+https://seed.radicle.garden/z3HYheWh86U9ErEL18tK2gBkq7g2A.git
+  version: v2.4.0-0
+  name: chiefonboarding
+  activation_prefix: chiefonboarding_
 - src: git+https://github.com/mother-of-all-self-hosting/ansible-role-cinny.git
   version: v4.11.1-0
   name: cinny
@@ -189,7 +193,7 @@
   name: docker_sdk_for_python
   activation_prefix: devture_docker_sdk_for_python_installation_enabled
 - src: git+https://github.com/mother-of-all-self-hosting/ansible-role-docmost.git
-  version: v0.70.2-1
+  version: v0.70.3-0
   name: docmost
   activation_prefix: docmost_
 - src: git+https://seed.radicle.garden/z2HG5jWufCQfA8cYAFkJ9GmZyRcCs.git
@@ -249,7 +253,7 @@
   name: fider
   activation_prefix: fider_
 - src: git+https://seed.radicle.garden/z318zbpe2RNjFqVzXqPoDDJvvohbw.git
-  version: v2.62.1-0
+  version: v2.62.1-1
   name: filebrowser
   activation_prefix: filebrowser_
 - src: git+https://seed.radicle.garden/z3ALGSKDhVLeMnR49YPXk5yv2yTge.git
@@ -353,7 +357,7 @@
   name: immich
   activation_prefix: immich_
 - src: git+https://github.com/mother-of-all-self-hosting/ansible-role-immich-kiosk.git
-  version: v0.33.3-0
+  version: v0.34.0-0
   name: immich_kiosk
   activation_prefix: immich_kiosk_
 - src: git+https://github.com/mother-of-all-self-hosting/ansible-role-infisical.git
