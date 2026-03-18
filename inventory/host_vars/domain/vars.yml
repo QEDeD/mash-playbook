@@ -27,7 +27,7 @@ domain: "{{ vault_domain }}"
 ########################################################################
 
 # Allow extra time for slow services to start before verification.
-devture_systemd_service_manager_up_verification_delay_seconds: 35
+devture_systemd_service_manager_up_verification_delay_seconds: 90
 
 # Restart services in priority batches so earlier dependencies are scheduled
 # ahead of application services.
@@ -843,7 +843,7 @@ headscale_config_dns_search_domains:
 headscale_config_prefixes_v4: 100.100.0.0/20
 
 headscale_config_oidc_enabled: true
-headscale_config_oidc_only_start_if_oidc_is_available: false
+headscale_config_oidc_only_start_if_oidc_is_available: true
 headscale_config_oidc_issuer: "https://authentik.{{ domain }}/application/o/headscale/"
 headscale_config_oidc_client_id: "{{ vault_headscale_config_oidc_client_id }}"
 headscale_config_oidc_client_secret: "{{ vault_headscale_config_oidc_client_secret }}"
@@ -851,6 +851,7 @@ headscale_config_oidc_pkce_enabled: true
 headscale_config_oidc_pkce_method: S256
 
 headscale_systemd_required_services_list_custom:
+  - mash-traefik.service
   - mash-authentik-server.service
   - mash-authentik-worker.service
 # https://headscale.net/stable/ref/oidc/?h=oidc
@@ -870,6 +871,7 @@ headscale_systemd_required_services_list_custom:
 headplane_enabled: true
 
 headplane_hostname: "headplane.{{ domain }}"
+headplane_version: 0.6.2
 headplane_cookie_secret: "{{ vault_headplane_cookie_secret }}"
 
 headscale_extra_records_path_enabled: true
