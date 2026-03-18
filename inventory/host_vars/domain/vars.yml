@@ -843,7 +843,7 @@ headscale_config_dns_search_domains:
 headscale_config_prefixes_v4: 100.100.0.0/20
 
 headscale_config_oidc_enabled: true
-headscale_config_oidc_only_start_if_oidc_is_available: true
+headscale_config_oidc_only_start_if_oidc_is_available: false
 headscale_config_oidc_issuer: "https://authentik.{{ domain }}/application/o/headscale/"
 headscale_config_oidc_client_id: "{{ vault_headscale_config_oidc_client_id }}"
 headscale_config_oidc_client_secret: "{{ vault_headscale_config_oidc_client_secret }}"
@@ -851,7 +851,6 @@ headscale_config_oidc_pkce_enabled: true
 headscale_config_oidc_pkce_method: S256
 
 headscale_systemd_required_services_list_custom:
-  - mash-traefik.service
   - mash-authentik-server.service
   - mash-authentik-worker.service
 # https://headscale.net/stable/ref/oidc/?h=oidc
