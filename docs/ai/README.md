@@ -32,6 +32,13 @@ Top-level docs remain user/operator product documentation (for example:
 Use `docs/ai/*` for support-process behavior and command construction; use
 top-level docs for service/playbook semantics.
 
+For the shared Codex setup:
+
+- repo-local `.agents/skills/**` is optional space for truly repo-specific
+  skills if present
+- shared custom skills are sourced from `~/codex-support/skills`
+- shared custom skills are installed for runtime use via `~/.agents/skills`
+
 ## Maintenance rule
 
 Non-repository-specific support rules should remain text-identical across
