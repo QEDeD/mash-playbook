@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2026 MASH project contributors
+
+SPDX-License-Identifier: AGPL-3.0-or-later
+-->
+
 # Agent Workflows
 
 ## Grounding Before Proposing Changes
