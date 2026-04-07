@@ -1,15 +1,17 @@
-# Ignore folder that would expose domain
+# Upstream default is to ignore inventory locally. Use the `/*` form here so
+# this fork can deliberately re-include a small tracked subset.
+/inventory/*
+!/inventory/host_vars/
 
-/inventory/hosts
-/inventory/host_vars/**
+# Fork-local tracked inventory exceptions. Keep this block isolated so future
+# upstream merges only need to preserve these explicit re-includes.
+/inventory/host_vars/*
 !/inventory/host_vars/domain/
 !/inventory/host_vars/domain/**
 !/inventory/host_vars/domain-immich-deps/
 !/inventory/host_vars/domain-immich-deps/**
 !/inventory/host_vars/domain-nextcloud-deps/
 !/inventory/host_vars/domain-nextcloud-deps/**
-/inventory/host_vars/domain/*.bak
-/inventory/host_vars/domain/**/*.bak
 
 # ignore files created by running pre-commit locally
 .ansible
