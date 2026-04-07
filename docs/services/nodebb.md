@@ -164,15 +164,11 @@ Having configured `vars.yml` for the dedicated instance, add the following confi
 # Add the base configuration as specified above
 
 # Point NodeBB to its dedicated Valkey instance
-nodebb_redis_hostname: mash-nodebb-valkey
+nodebb_redis_socket_path_host: /mash/nodebb-valkey/run
 
 # Make sure the NodeBB service (mash-nodebb.service) starts after its dedicated Valkey service (mash-nodebb-valkey.service)
 nodebb_systemd_required_services_list_custom:
   - "mash-nodebb-valkey.service"
-
-# Make sure the NodeBB service (mash-nodebb.service) is connected to the container network of its dedicated Valkey service (mash-nodebb-valkey)
-nodebb_container_additional_networks_custom:
-  - "mash-nodebb-valkey"
 
 ########################################################################
 #                                                                      #
@@ -214,15 +210,11 @@ valkey_enabled: true
 # Add the base configuration as specified above
 
 # Point NodeBB to the shared Valkey instance
-nodebb_redis_hostname: "{{ valkey_identifier }}"
+nodebb_redis_socket_path_host: "{{ valkey_run_path }}"
 
-# Make sure the NodeBB service (mash-nodebb.service) starts after its dedicated Valkey service (mash-nodebb-valkey.service)
+# Make sure the NodeBB service (mash-nodebb.service) starts after the shared Valkey service (mash-valkey.service)
 nodebb_systemd_required_services_list_custom:
   - "{{ valkey_identifier }}.service"
-
-# Make sure the NodeBB container is connected to the container network of its dedicated Valkey service (mash-nodebb-valkey)
-nodebb_container_additional_networks_custom:
-  - "{{ valkey_container_network }}"
 
 ########################################################################
 #                                                                      #

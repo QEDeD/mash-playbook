@@ -1,3 +1,4 @@
+---
 - name: "Set up a self-hosted server"
   hosts: "{{ target if target is defined else 'mash_servers' }}"
   become: true
@@ -313,6 +314,10 @@
     - role: galaxy/farmos
     # /role-specific:farmos
 
+    # role-specific:feishin
+    - role: galaxy/feishin
+    # /role-specific:feishin
+
     # role-specific:fider
     - role: galaxy/fider
     # /role-specific:fider
@@ -396,6 +401,10 @@
     # role-specific:healthchecks
     - role: galaxy/healthchecks
     # /role-specific:healthchecks
+
+    # role-specific:heyform
+    - role: galaxy/heyform
+    # /role-specific:heyform
 
     # role-specific:homarr
     - role: galaxy/homarr
@@ -548,6 +557,10 @@
     # role-specific:memcached
     - role: galaxy/memcached
     # /role-specific:memcached
+
+    # role-specific:memos
+    - role: galaxy/memos
+    # /role-specific:memos
 
     # role-specific:minecraft
     - role: galaxy/minecraft

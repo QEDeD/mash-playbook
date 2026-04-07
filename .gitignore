@@ -11,12 +11,17 @@
 /inventory/host_vars/domain/*.bak
 /inventory/host_vars/domain/**/*.bak
 
+# ignore files created by running pre-commit locally
+.ansible
+
 /requirements.yml
 /setup.yml
 /group_vars/mash_servers
 
 /run/*
 !/run/.gitkeep
+
+/var/
 
 /group_vars/*
 !/group_vars/.gitkeep

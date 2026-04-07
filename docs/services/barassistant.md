@@ -84,7 +84,7 @@ To actually have the service use (and get messages sent through the exim-relay s
 
 To enable the search and filtering functions, you can optionally have the Bar Assistant instance connect to a Meilisearch instance.
 
-Meilisearch is available on the playbook. Enabling it and setting the default admin API key automatically configures the Bar Assistant instance to connect to it.
+Meilisearch is available on the playbook. Enabling it and setting the default admin API key (`meilisearch_default_admin_api_key`) automatically configures the Bar Assistant instance to connect to it.
 
 See [this page](meilisearch.md) for details about how to install it and setting the key for the Meilisearch instance.
 
@@ -194,13 +194,13 @@ Having configured `vars.yml` for the dedicated instance, add the following confi
 # Point Bar Assistant server to its dedicated Valkey instance
 barassistant_redis_hostname: mash-barassistant-valkey
 
-# Make sure the Bar Assistant server service (mash-barassistant-server.service) starts after its dedicated Valkey service (mash-barassistant-valkey.service)
-barassistant_server_systemd_required_services_list_custom:
-  - "mash-barassistant-valkey.service"
-
 # Make sure the Bar Assistant server container is connected to the container network of its dedicated Valkey service (mash-barassistant-valkey)
 barassistant_server_container_additional_networks_custom:
   - "mash-barassistant-valkey"
+
+# Make sure the Bar Assistant server service (mash-barassistant-server.service) starts after its dedicated Valkey service (mash-barassistant-valkey.service)
+barassistant_server_systemd_required_services_list_custom:
+  - "mash-barassistant-valkey.service"
 
 ########################################################################
 #                                                                      #
@@ -244,13 +244,13 @@ valkey_enabled: true
 # Point Bar Assistant server to the shared Valkey instance
 barassistant_redis_hostname: "{{ valkey_identifier }}"
 
-# Make sure the Bar Assistant server service (mash-barassistant-server.service) starts after the shared Valkey service (mash-valkey.service)
-barassistant_server_systemd_required_services_list_custom:
-  - "{{ valkey_identifier }}.service"
-
 # Make sure the Bar Assistant server container is connected to the container network of the shared Valkey service (mash-valkey)
 barassistant_server_container_additional_networks_custom:
   - "{{ valkey_identifier }}"
+
+# Make sure the Bar Assistant server service (mash-barassistant-server.service) starts after the shared Valkey service (mash-valkey.service)
+barassistant_server_systemd_required_services_list_custom:
+  - "{{ valkey_identifier }}.service"
 
 ########################################################################
 #                                                                      #
