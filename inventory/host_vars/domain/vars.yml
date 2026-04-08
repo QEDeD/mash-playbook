@@ -275,17 +275,20 @@ nextcloud_app_collabora_wopi_url: "{{ collabora_online_url }}"
 # https://docs.nextcloud.com/server/stable/admin_manual/configuration_server/config_sample_php_parameters.html
 # https://github.com/mother-of-all-self-hosting/ansible-role-nextcloud/blob/main/defaults/main.yml
 
+# Keep Nextcloud using the Postgres Unix socket explicitly. Newer clean
+# ansible-role-nextcloud releases default this back to TCP unless enabled.
+nextcloud_database_postgres_socket_enabled: true
+
 # Nextcloud dedicated valkey
-# Point Nextcloud to its dedicated Valkey instance
-nextcloud_redis_hostname: mash-nextcloud-valkey
+# Keep Nextcloud using its dedicated Valkey Unix socket explicitly. Newer clean
+# ansible-role-nextcloud releases require the socket mode to be enabled
+# explicitly for this configuration.
+nextcloud_redis_socket_enabled: true
+nextcloud_redis_socket_path_host: /mash/nextcloud-valkey/run
 
 # Ensure Nextcloud starts after Valkey
 nextcloud_systemd_required_services_list_custom:
   - "mash-nextcloud-valkey.service"
-
-# Connect Nextcloud to Valkey's container network
-nextcloud_container_additional_networks_custom:
-  - "mash-nextcloud-valkey"
 # /Nextcloud dedicated valkey
 
 nextcloud_preview_enabled: true
