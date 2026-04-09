@@ -167,6 +167,27 @@ For contributor work that changes playbook wiring, edit source files under
 - Editing `inventory/**` is a latent remote change: managed-node state is
   unchanged until a playbook command is executed.
 
+## Ignored Local Inventory and Worktree Isolation
+
+- Before concluding that inventory or configuration "is on `main`" or "belongs
+  to this branch", verify whether it is tracked by git or only present as
+  ignored local inventory.
+- Ground this by checking `.gitignore`, `git status --short --ignored`, and the
+  relevant `inventory/**` paths before relying on `git log`, `git diff`, or
+  `rg` alone.
+- In this repo, tracked domain-neutral inventory sources may pair with ignored
+  host-specific wrapper directories. For example, tracked
+  `inventory/host_vars/domain*/**` can coexist with ignored
+  `inventory/host_vars/<real-host>*/` wrappers whose `vars.yml` and `vault.yml`
+  symlink back to the generic source.
+- Treat `inventory/hosts` the same way: if it is ignored locally, active host
+  entries may exist in the worktree without appearing in tracked branch
+  history.
+- Branch switching in a single checkout does not isolate ignored files.
+  Ignored local inventory persists across branch changes in the same worktree.
+- If ignored inventory must differ between branches or scenarios, prefer
+  separate `git worktree` checkouts. Use backup/restore only as a fallback.
+
 ## Managed-node impact policy
 
 - Classify each executed or proposed command as one of:

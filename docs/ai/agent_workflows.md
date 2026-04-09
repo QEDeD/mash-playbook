@@ -49,6 +49,32 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 - `rg -n "<varname>" inventory/host_vars inventory/group_vars group_vars`
 - `rg -n "stop-group|start-group|status" justfile`
 
+## Ignored Local Inventory Grounding
+
+- Before concluding that an inventory path is absent from `main` or from git
+  history, inspect ignored local inventory too.
+- Start with:
+- `git status --short --ignored inventory/hosts inventory/host_vars`
+- `git check-ignore -v inventory/hosts inventory/host_vars/<candidate>/vars.yml`
+- `find inventory/host_vars -maxdepth 1 -mindepth 1 -type d | sort`
+- Distinguish:
+- tracked domain-neutral source directories (for example `inventory/host_vars/domain*/`)
+- ignored host-specific wrapper directories (for example `inventory/host_vars/<real-host>*/`)
+- If a host-specific wrapper exists, inspect `ls -la` and `readlink -f` for
+  `vars.yml` and `vault.yml` before planning edits or moves.
+- Do not conclude "nothing to separate" from `git log`, `git diff`, or `rg`
+  alone when `.gitignore` can hide the active local inventory.
+
+## Ignored Inventory Branch Isolation
+
+- A branch switch in one checkout does not remove or isolate ignored inventory
+  such as `inventory/hosts` or ignored `inventory/host_vars/**`.
+- If ignored local inventory must differ between branches, prefer a separate
+  `git worktree` over branch-only switching.
+- Before moving or removing ignored inventory, snapshot the current local
+  files, then verify both source and target worktrees with
+  `git status --short` and `git status --short --ignored`.
+
 ## Service-Enablement Grounding
 
 - For each newly enabled service, review both documentation layers:
