@@ -253,7 +253,7 @@
   name: feishin
   activation_prefix: feishin_
 - src: git+https://seed.radicle.garden/z3Fe49p3uVZpC43KdB5gDCTmr8u7Y.git
-  version: v0.33.0-2
+  version: v0.33.0-3
   name: fider
   activation_prefix: fider_
 - src: git+https://seed.radicle.garden/z318zbpe2RNjFqVzXqPoDDJvvohbw.git
@@ -357,7 +357,7 @@
   name: ilmo
   activation_prefix: ilmo_
 - src: git+https://github.com/mother-of-all-self-hosting/ansible-role-immich.git
-  version: v2.7.2-0
+  version: v2.7.3-0
   name: immich
   activation_prefix: immich_
 - src: git+https://github.com/mother-of-all-self-hosting/ansible-role-immich-kiosk.git
@@ -813,11 +813,11 @@
   name: send
   activation_prefix: send_
 - src: git+https://github.com/mother-of-all-self-hosting/ansible-role-sftpgo.git
-  version: v2.7.1-5
+  version: v2.7.1-6
   name: sftpgo
   activation_prefix: sftpgo_
 - src: git+https://seed.radicle.garden/z3PxyXm3EXE4xCNKcaKVKmtdjVNog.git
-  version: v2.4.1-2
+  version: v2.4.1-3
   name: silverbullet
   activation_prefix: silverbullet_
 - src: git+https://seed.radicle.garden/zXf3qnvPwC2UsBpfTYmPesL5KSZc.git
@@ -945,7 +945,7 @@
   name: vikunja
   activation_prefix: vikunja_
 - src: git+https://seed.radicle.garden/z3NoFEkNtQQjSGjLvweqwCFPbC59R.git
-  version: v5.16.2.2-0
+  version: v5.16.2.3-0
   name: weblate
   activation_prefix: weblate_
 - src: git+https://github.com/spatterIight/ansible-role-wetty.git
