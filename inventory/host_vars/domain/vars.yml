@@ -27,7 +27,9 @@ domain: "{{ vault_domain }}"
 ########################################################################
 
 # Allow extra time for slow services to start before verification.
-devture_systemd_service_manager_up_verification_delay_seconds: 90
+# Authentik can take a few minutes to become OIDC-ready after systemd marks it
+# started, and Headscale now fails closed until discovery works.
+devture_systemd_service_manager_up_verification_delay_seconds: 270
 
 # Restart services in priority batches so earlier dependencies are scheduled
 # ahead of application services.
@@ -44,6 +46,37 @@ devture_systemd_service_manager_services_list_auto_overrides:
 ########################################################################
 #                                                                      #
 # /systemd_service_manager                                             #
+#                                                                      #
+########################################################################
+
+########################################################################
+#                                                                      #
+# aux                                                                  #
+#                                                                      #
+########################################################################
+
+# Add a systemd drop-in so Headscale waits for Authentik OIDC discovery before
+# starting. This avoids fail-open CLI fallback while also avoiding restart loops
+# during Authentik/Traefik startup.
+aux_directory_definitions_custom:
+  - dest: /etc/systemd/system/mash-headscale.service.d
+    owner: root
+    group: root
+    mode: "0755"
+
+aux_file_definitions_custom:
+  - dest: /etc/systemd/system/mash-headscale.service.d/10-wait-for-oidc.conf
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      [Service]
+      TimeoutStartSec=300
+      ExecStartPre=/bin/sh -c 'attempt=0; while [ "$attempt" -lt 120 ]; do if /usr/bin/curl -fsS -o /dev/null "{{ headscale_config_oidc_issuer }}.well-known/openid-configuration"; then exit 0; fi; attempt=$((attempt + 1)); echo "Waiting for Headscale OIDC discovery endpoint ($attempt/120)"; sleep 2; done; echo "Timed out waiting for Headscale OIDC discovery endpoint" >&2; exit 1'
+
+########################################################################
+#                                                                      #
+# /aux                                                                 #
 #                                                                      #
 ########################################################################
 
@@ -878,6 +911,7 @@ headplane_version: 0.7.0-beta.2
 headplane_cookie_secret: "{{ vault_headplane_cookie_secret }}"
 
 headplane_environment_variables_additional_variables: |
+  HEADPLANE_LOAD_ENV_OVERRIDES=true
   HEADPLANE_SERVER__BASE_URL=https://{{ headplane_hostname }}
   HEADPLANE_HEADSCALE__API_KEY={{ vault_headplane_headscale_api_key }}
   HEADPLANE_OIDC__ENABLED=true
