@@ -171,6 +171,58 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 - If the branch changed materially after review started, refresh the PR body
   and add a short top-level comment.
 
+## Branch Cleanup And Preservation Review
+
+- Treat branch cleanup as a preservation review, not a purely mechanical
+  deletion task.
+- First identify the primary branch and confirm the working tree is clean:
+- `git status --short`
+- `git branch --show-current`
+- List local branches and their upstream state:
+- `git branch -vv`
+- Check whether the candidate is ancestry-merged:
+- `git branch --merged <primary_branch>`
+- `git log --oneline <primary_branch>..<candidate_branch>`
+- If the candidate is ancestry-merged and has no linked worktree or ignored
+  local state to preserve, delete it conservatively:
+
+```sh
+git branch -d <candidate_branch>
+```
+
+- If `git branch -d` refuses, do not treat that as a cleanup failure by itself.
+  It means the branch is not ancestry-merged and needs content review.
+- Review non-ancestry branches with:
+- `git cherry -v <primary_branch> <candidate_branch>`
+- `git diff --stat <primary_branch>...<candidate_branch>`
+- `git diff --name-status <primary_branch>...<candidate_branch>`
+- For remote-backed branches, also compare the local branch with its upstream:
+- `git log --oneline <upstream_ref>..<candidate_branch>`
+- `git log --oneline <candidate_branch>..<upstream_ref>`
+- `git diff --name-status <upstream_ref>..<candidate_branch>`
+- Treat every patch-unique commit, documentation change, support-file change,
+  tooling change, and ignored worktree file as potentially valuable until it is
+  reviewed and classified as already present, superseded, intentionally
+  discarded, or worth extracting.
+- If a branch has a linked worktree, inspect the worktree before removing it:
+- `git worktree list`
+- `git -C <worktree_path> status --short --ignored`
+- For secret-bearing paths such as `inventory/**/vault.yml`, do not print raw
+  diffs by default. Use path names, stats, blob IDs, or variable-name summaries
+  unless the user explicitly requests raw values.
+- Use force deletion only after explicit user confirmation:
+
+```sh
+git branch -D <candidate_branch>
+```
+
+- Remote branch deletion is never default cleanup. Provide user-run commands
+  only when the user explicitly asks for remote deletion:
+
+```sh
+git push origin --delete <candidate_branch>
+```
+
 ## Pre-Flight and Finalization
 
 - Before suggesting remote-impact execution, run local pre-flight checks:

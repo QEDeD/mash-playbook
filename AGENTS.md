@@ -121,6 +121,25 @@ Mini-plan (brief bullets) is sufficient for:
 - unless the user explicitly requests edits on primary branch
 - Operator-owned paths can be edited on any branch.
 
+## Post-merge branch cleanup
+
+- Local branch cleanup is allowed only after:
+- the candidate branch has been reviewed for unique state
+- merge or supersession into the primary branch is complete locally
+- `git status --short` is empty
+- Preferred local cleanup command: `git branch -d <work-branch>`.
+- If `git branch -d` refuses, do not escalate to `git branch -D` until the
+  unmerged commits have been reviewed with `git cherry -v`, `git log`, and
+  `git diff`, and the user explicitly confirms force deletion.
+- Before removing a linked worktree, inspect it with `git worktree list` and
+  `git status --short --ignored` from that worktree, because ignored local
+  inventory or other untracked state may not be represented by the branch ref.
+- If auxiliary upstream-subset branches exist (for example
+  `upstreamable/<topic>`), apply the same merged-or-reviewed deletion rule.
+- Do not delete remote branches by default.
+- Remote branch deletion requires an explicit user request and should be
+  provided as user-run command blocks.
+
 ## Fork-Tracked Support Paths and Upstream PR Hygiene
 
 - `AGENTS.md`, `docs/ai/**`, `.agents/skills/**`, `.codex/**`,
