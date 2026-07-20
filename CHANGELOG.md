@@ -1,3 +1,11 @@
+# 2026-07-20
+
+## Fix standalone service restart commands
+
+Standalone `start`, `start-all`, `start-group`, `restart`, `restart-all`, and `restart-group` runs now unconditionally restart their targeted services. Conditional restart remains enabled only for `install-*` runs that do not also include a `setup-*` tag.
+
+The documented override example now uses JSON extra-vars so `false` is passed to Ansible as a boolean rather than a string.
+
 # 2026-03-19
 
 ## Firezone has been removed from the playbook
@@ -29,7 +37,7 @@ Some benchmarks from [matrix-docker-ansible-deploy](https://github.com/spantalee
   - Traefik restarted: no ✅
   - dependent services restarted: no ✅
 
-This behavior can be overridden via `--extra-vars='devture_systemd_service_manager_conditional_restart_enabled=false'` to force unconditional restarts. See [Conditional service restart](docs/just.md#conditional-service-restart) for details.
+This behavior can be overridden via `--extra-vars='{"devture_systemd_service_manager_conditional_restart_enabled": false}'` to force unconditional restarts. See [Conditional service restart](docs/just.md#conditional-service-restart) for details.
 
 ## Set service passwords on `vars.yml` manually
 
