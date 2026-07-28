@@ -2,34 +2,57 @@
 SPDX-FileCopyrightText: 2023 Julian-Samuel Gebühr
 SPDX-FileCopyrightText: 2023 - 2024 Slavi Pantaleev
 SPDX-FileCopyrightText: 2025 Suguru Hirahara
+SPDX-FileCopyrightText: 2026 MASH project contributors
 
 SPDX-License-Identifier: AGPL-3.0-or-later
 -->
 
-# Running multiple instances of the same service on the same host
+# Running multiple instances of the same service on one server or virtual machine
 
 On this playbook, each Ansible role can only be invoked once and made to install one instance of the service it is responsible for. So, if you need multiple instances (of whichever service), you'll need some workarounds.
 
-Let's say you are setting up [PeerTube](services/peertube.md) and [NetBox](services/netbox.md), both of which require a [Valkey](services/valkey.md) instance, on the same host called `mash.example.com`.
+Let's say you are setting up [PeerTube](services/peertube.md) and [NetBox](services/netbox.md), both of which require a [Valkey](services/valkey.md) instance, on the same server or virtual machine represented by `mash.example.com`.
 
 If you just add `valkey_enabled: true` to `vars.yml` for `mash.example.com`, a single shared Valkey instance (`mash-valkey`) would be set up. However, it is not recommended because sharing the Valkey instance has security concerns and possibly causes data conflicts. In this case, you should not add `valkey_enabled: true` to `vars.yml` but install dedicated Valkey instances for each of them.
 
 To install those instances, you can follow the steps below:
 
 1. Adjust the `hosts` file
-2. Adjust the configuration of the supplementary hosts to use a new "namespace"
+2. Adjust the configuration of the supplementary inventory hosts to use a new "namespace"
 3. Edit the `vars.yml` file for the main host
 
 ℹ️ This document takes Valkey as an example, but the same steps can be applied to host multiple instances or whole stacks of any kind.
 
+## Inventory hosts and managed nodes
+
+An **inventory host** is a logical Ansible identity, not necessarily a separate server or virtual machine. Its name selects its own `inventory/host_vars/<inventory-host>/vars.yml` file and is used with the `-l` flag. In this example, `ansible_host` specifies the address of the target system.
+
+Ansible calls the target system a **managed node**. In MASH, this is the Linux operating-system environment and Docker host being configured. Multiple inventory hosts can have separate variables and service namespaces while using the same `ansible_host` value to target one managed node. MASH calls an additional identity used this way a **supplementary inventory host**.
+
+The example on this page has this relationship:
+
+```text
+main inventory host + its host_vars ───────────────────┐
+                                                       ├─ same ansible_host value
+supplementary inventory host(s) + their host_vars ─────┘
+                                                            │
+                                                            ▼
+                                                   one managed node
+                                                   (one Linux server or VM)
+                                                   ├─ application containers
+                                                   └─ dependency containers
+```
+
+The inventory hosts are therefore separate configuration and execution identities, but they do not represent nested or additional operating systems. Ansible can select and run them independently, and the unique prefixes in step 2 keep the resulting service names and paths separate. See [Using Ansible for the playbook](ansible.md) for the control-node and managed-node model, and [Inventory aliases](https://docs.ansible.com/projects/ansible/latest/inventory_guide/intro_inventory.html#inventory-aliases) for the underlying Ansible feature.
+
 ## 1. Adjust `hosts`
 
-At first, you need to set up your `hosts` file in `inventory` directory as follows, so that hosts for multiple instances of the same service target the same server.
+At first, set up `inventory/hosts` as follows, so that the inventory hosts for the service instances target the same managed node.
 
 💡 **Notes**:
 
-- Make sure to replace `mash.example.com` with your hostname and `YOUR_SERVER_IP_ADDRESS_HERE` with the IP address of the host, respectively.
-- `mash_example_com` can be any string and does not have to match with the hostname of the server.
+- Make sure to replace `mash.example.com` with your hostname and `YOUR_SERVER_IP_ADDRESS_HERE` with the IP address or resolvable name of the managed node, respectively.
+- `mash_example_com` can be any valid Ansible inventory group name and does not need to match the server hostname.
 
 ```ini
 [mash_servers]
@@ -42,41 +65,45 @@ mash.example.com-netbox-deps ansible_host=YOUR_SERVER_IP_ADDRESS_HERE
 mash.example.com-peertube-deps ansible_host=YOUR_SERVER_IP_ADDRESS_HERE
 ```
 
-This creates a new group (called `mash_example_com`) which contains all 3 hosts:
+This creates a new group (called `mash_example_com`) which contains all 3 inventory hosts:
 
-- (**new**) `mash.example.com-netbox-deps` — a new host, for your [NetBox](services/netbox.md) dependencies
-- (**new**) `mash.example.com-peertube-deps` — a new host, for your [PeerTube](services/peertube.md) dependencies
+- (**new**) `mash.example.com-netbox-deps` — a supplementary inventory host for your [NetBox](services/netbox.md) dependencies
+- (**new**) `mash.example.com-peertube-deps` — a supplementary inventory host for your [PeerTube](services/peertube.md) dependencies
 - (old) `mash.example.com` — your main inventory host
 
-You can just add a new entry to `[mash_example_com]` in order to have another supplementary host contained in the group.
+You can add a new entry to `[mash_example_com]` to include another supplementary inventory host in the group.
 
-### Note: use `-l` flag to select a host to run Ansible commands
+### Note: use `-l` to select an inventory host
 
-When running Ansible commands later on, you can use the `-l` flag to limit which host to run them against. Here are a few examples:
+When running Ansible commands later on, use the `-l` flag to limit which inventory host to run them against. Here are a few examples:
 
-- `just install-all` — runs the [installation](installing.md) process on all hosts (3 hosts in this case)
-- `just install-all -l mash_example_com` — runs the installation process on all hosts in the `mash_example_com` group (same 3 hosts as `just install-all` in this case)
-- `just install-all -l mash.example.com-netbox-deps` — runs the installation process on the `mash.example.com-netbox-deps` host
+- `just install-all` — runs the [installation](installing.md) process on all inventory hosts (3 hosts in this case)
+- `just install-all -l mash_example_com` — runs the installation process on all inventory hosts in the `mash_example_com` group (the same 3 hosts as `just install-all` in this case)
+- `just install-all -l mash.example.com-netbox-deps` — runs the installation process only on the `mash.example.com-netbox-deps` inventory host
 
-## 2. Adjust the configuration of the supplementary hosts to use a new "namespace"
+## 2. Adjust the configuration of the supplementary inventory hosts to use a new "namespace"
 
-Simply targeting the same server with multiple hosts causes conflicts, because services will use the same paths (e.g. `/mash/valkey`) and service/container names (`mash-valkey`) everywhere.
+Targeting the same managed node with multiple inventory hosts without further configuration causes conflicts, because services will use the same paths (e.g. `/mash/valkey`) and service/container names (`mash-valkey`) everywhere.
 
-To avoid conflicts, it is necessary to adjust the `vars.yml` file for the new hosts (`mash.example.com-netbox-deps` and `mash.example.com-peertube-deps` in this example) and set non-default and unique values to variables, which are to override service names and directory path prefixes.
+To avoid conflicts, adjust the `vars.yml` file for the new inventory hosts (`mash.example.com-netbox-deps` and `mash.example.com-peertube-deps` in this example) and set non-default and unique values for the variables which override service names and directory path prefixes.
 
-First, create new directories where `vars.yml` for the supplementary hosts are stored. Their paths should be `inventory/host_vars/mash.example.com-netbox-deps` and `inventory/host_vars/mash.example.com-peertube-deps`.
+First, create new directories where `vars.yml` for the supplementary inventory hosts are stored. Their paths should be `inventory/host_vars/mash.example.com-netbox-deps` and `inventory/host_vars/mash.example.com-peertube-deps`.
 
 Then, create a new `vars.yml` file inside each of them with a content below.
 
 💡 **Notes**:
 
-- As this `vars.yml` file will be used for the new host, make sure to set `mash_playbook_generic_secret_key`. It does not need to be same as the one on `vars.yml` for the main host.
+- As this `vars.yml` file will be used for the new inventory host, make sure to set `mash_playbook_generic_secret_key`. It does not need to be the same as the one in `vars.yml` for the main inventory host.
 - These variables are not related to the hostname of the server. For example, even if it is `www.example.com`, you do not need to include `www` in either of them. If you are not sure which string you should set, you might as well use the values as they are.
 
-For the supplementary host for NetBox, create `inventory/host_vars/mash.example.com-netbox-deps/vars.yml` with this content.
+For the supplementary inventory host for NetBox, create `inventory/host_vars/mash.example.com-netbox-deps/vars.yml` with this content.
 
 ```yaml
-# This is vars.yml for the supplementary host of NetBox.
+# NetBox dependencies - supplementary inventory host
+#
+# Inventory host: mash.example.com-netbox-deps
+# Purpose: dedicated Valkey for NetBox
+# Managed node: same server or VM targeted by mash.example.com
 
 ---
 
@@ -114,10 +141,14 @@ valkey_enabled: true
 ########################################################################
 ```
 
-For the supplementary host for PeerTube, create `inventory/host_vars/mash.example.com-peertube-deps/vars.yml` with this content.
+For the supplementary inventory host for PeerTube, create `inventory/host_vars/mash.example.com-peertube-deps/vars.yml` with this content.
 
 ```yaml
-# This is vars.yml for the supplementary host of PeerTube.
+# PeerTube dependencies - supplementary inventory host
+#
+# Inventory host: mash.example.com-peertube-deps
+# Purpose: dedicated Valkey for PeerTube
+# Managed node: same server or VM targeted by mash.example.com
 
 ---
 
@@ -221,10 +252,18 @@ peertube_systemd_required_services_list_custom:
 
 ## Installation
 
-Finally, run the [installation](installing.md) command to create supplementary hosts and wire them to the main host.
+Finally, install the service instances for each supplementary inventory host before running the [installation](installing.md) command for the main inventory host:
+
+```sh
+just install-all -l mash.example.com-netbox-deps
+just install-all -l mash.example.com-peertube-deps
+just install-all -l mash.example.com
+```
 
 > [!WARNING]
-> Make sure to run the command for the supplementary hosts first, before running it for the main host. Note that running the `just` command for installation (`just install-all` or `just setup-all`) automatically takes care of starting services in the correct order (thanks to the explicit dependencies defined between them).
+> Ansible treats inventory aliases as separate hosts and [may run their tasks in parallel](https://docs.ansible.com/projects/ansible/latest/inventory_guide/intro_inventory.html#inventory-aliases) even when they target the same managed node. Do not rely on an unscoped `just install-all` or `just setup-all` command to serialize the initial installation or a configuration change which affects both sides.
+
+The `*_systemd_required_services_list_custom` entries shown above solve a later and different ordering problem: after the systemd unit files exist, they make systemd activate the dependency service before its consumer. They do not order Ansible installation tasks.
 
 ## Questions & Answers
 
@@ -232,6 +271,6 @@ Finally, run the [installation](installing.md) command to create supplementary h
 
 > You may or you may not. See the [Valkey](services/valkey.md) documentation for why you shouldn't do this.
 
-**Can't I just create one host and a separate stack for each service** (e.g. Nextcloud + all dependencies on one inventory host; PeerTube + all dependencies on another inventory host; with both inventory hosts targeting the same server)?
+**Can't I just create one inventory host and a separate stack for each service** (e.g. Nextcloud + all dependencies on one inventory host; PeerTube + all dependencies on another inventory host; with both inventory hosts targeting the same managed node)?
 
 > That's a possibility which is somewhat clean. The downside is that each "full stack" comes with its own Postgres database which needs to be maintained and upgraded separately.
