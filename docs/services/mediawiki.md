@@ -88,11 +88,15 @@ To create a dedicated instance for MediaWiki, you can follow the steps below:
 2. Create a new `vars.yml` file for the dedicated instance
 3. Edit the existing `vars.yml` file for the main host
 
+*See [this page](../running-multiple-instances.md) for details about configuring multiple service instances on the same server.*
+
+This recipe intentionally installs MediaWiki and its dedicated MariaDB instance on the same managed node, connecting their containers through Docker networking on that node. The inventory example therefore uses the same `ansible_host` value for both inventory hosts. A MariaDB deployment on another managed node requires separately exposing and securing MariaDB over TCP and configuring MediaWiki's database connection variables for that reachable endpoint; that remote topology is not covered here.
+
 ##### Adjust `hosts`
 
 At first, you need to adjust `inventory/hosts` file to add a supplementary host for MediaWiki.
 
-The content should be something like below. Make sure to replace `mash.example.com` with your hostname and `YOUR_SERVER_IP_ADDRESS_HERE` with the IP address of the host, respectively. The same IP address should be set to both, unless the MariaDB instance will be served from a different machine.
+The content should be something like below. Make sure to replace `mash.example.com` with your hostname and `YOUR_SERVER_IP_ADDRESS_HERE` with the IP address of the managed node, respectively.
 
 ```ini
 [mash_servers]
@@ -256,6 +260,15 @@ To actually have the service use (and get messages sent through the exim-relay s
 As the configuration settings specified on that file are basic despite being sufficient for starting up the instance, you would probably want to add other standard settings listed on [this section](https://www.mediawiki.org/wiki/Manual:LocalSettings.php#Standard_settings) on the manual to `mediawiki_config_additional_configurations` such as disabling user registration and enabling email functions, for example. See [this setcion](https://github.com/mother-of-all-self-hosting/ansible-role-mediawiki/blob/main/docs/configuring-mediawiki.md#extending-the-configuration) for details.
 
 ## Installation
+
+If you configured the dedicated MariaDB instance above, install its supplementary inventory host before preparing the MediaWiki inventory host:
+
+```sh
+just install-all -l mash.example.com-mediawiki-deps
+just install-all -l mash.example.com
+```
+
+Run these as separate limited installations. Do not replace them with an unscoped `just install-all` or `just setup-all` command; Ansible may run inventory aliases which target the same managed node in parallel.
 
 Because installing a MediaWiki instance requires to invoke [`run.php install`](https://www.mediawiki.org/wiki/Manual:Install.php) and load the generated `LocalSettings.php` file on the container, installation process consists of multiple steps. **Running the [installing](../installing.md) command solely does not start up the MediaWiki instance.** Refer to [this section](https://github.com/mother-of-all-self-hosting/ansible-role-mediawiki/blob/main/docs/configuring-mediawiki.md#installing) for the instruction.
 

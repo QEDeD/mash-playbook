@@ -82,11 +82,13 @@ To create a dedicated instance for Reitti, you can follow the steps below:
 
 *See [this page](../running-multiple-instances.md) for details about configuring multiple instances of Valkey on the same server.*
 
+This recipe intentionally installs Reitti and its dedicated Valkey instance on the same managed node, connecting their containers through Docker networking on that node. The inventory example therefore uses the same `ansible_host` value for both inventory hosts. A Valkey deployment on another managed node requires separately exposing and securing Valkey over TCP and configuring Reitti's Valkey connection variables for that reachable endpoint; that remote topology is not covered here.
+
 ##### Adjust `hosts`
 
 At first, you need to adjust `inventory/hosts` file to add a supplementary host for Reitti.
 
-The content should be something like below. Make sure to replace `mash.example.com` with your hostname and `YOUR_SERVER_IP_ADDRESS_HERE` with the IP address of the host, respectively. The same IP address should be set to both, unless the Valkey instance will be served from a different machine.
+The content should be something like below. Make sure to replace `mash.example.com` with your hostname and `YOUR_SERVER_IP_ADDRESS_HERE` with the IP address of the managed node, respectively.
 
 ```ini
 [mash_servers]
@@ -230,7 +232,18 @@ reitti_systemd_required_services_list_custom:
 
 Running the installation command will create the shared Valkey instance named `mash-valkey`.
 
-### Usage
+## Installation
+
+If you configured the dedicated Valkey instance above, install its supplementary inventory host before the main inventory host:
+
+```sh
+just install-all -l mash.example.com-reitti-deps
+just install-all -l mash.example.com
+```
+
+Run these as separate limited installations. Do not replace them with an unscoped `just install-all` or `just setup-all` command; Ansible may run inventory aliases which target the same managed node in parallel.
+
+## Usage
 
 After running the command for installation, the Reitti instance becomes available at the URL specified with `reitti_hostname`. With the configuration above, the service is hosted at `https://reitti.example.com`.
 
