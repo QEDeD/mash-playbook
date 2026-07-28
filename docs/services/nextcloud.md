@@ -89,13 +89,59 @@ Some configuration parameters for Nextcloud can be specified with variables star
 
 Valkey can optionally be enabled to improve Nextcloud performance and to prevent file locking problems. This playbook supports it, and you can set up a Valkey instance by enabling it on `vars.yml`.
 
-If Nextcloud is the sole service which requires Valkey on your server, it is fine to set up just a single Valkey instance. However, **it is not recommended if there are other services which require it, because sharing the Valkey instance has security concerns and possibly causes data conflicts**, as described on the [documentation for configuring Valkey](valkey.md). In this case, you should install a dedicated Valkey instance for each of them.
+First choose the Valkey layout which matches your desired state:
 
-If you are unsure whether you will install other services along with Nextcloud or you have already set up services which need Valkey (such as [PeerTube](peertube.md), [Funkwhale](funkwhale.md), and [Docmost](docmost.md)), it is recommended to install a Valkey instance dedicated to Nextcloud.
+- **No Valkey** — the simplest deployment. Though running Valkey is recommended, you can start without it. Continue at [Continue after choosing a Valkey layout](#continue-after-choosing-a-valkey-layout).
+- **A dedicated Valkey instance** — recommended if another MASH-managed service uses or may later use Valkey, or if another application would otherwise connect to the same instance. Sharing one instance between services has security concerns and may cause data conflicts, as described in [Configuring Valkey](valkey.md).
+- **The shared MASH Valkey instance** — reasonable when Nextcloud is the only MASH-managed service on this managed node that needs Valkey and no non-MASH application will connect to the instance.
 
-*See [below](#setting-up-a-shared-valkey-instance) for an instruction to install a shared instance.*
+The practical transport rule is: **remote Valkey requires TCP, but TCP does not imply remote**. The recipes on this page cover these placements and connection modes:
 
-💡 Though running Valkey is recommended, you can **start without** it for a simpler deployment. To learn more, read [this section](https://docs.nextcloud.com/server/latest/admin_manual/configuration_server/caching_configuration.html#id2) of the Nextcloud documentation about memory caching.
+| Valkey placement | Available connection modes | Covered here |
+| --- | --- | --- |
+| Same managed node | Unix socket (recommended) or TCP over a shared Docker network | Yes |
+| Different managed node (remote) | TCP only | No; the endpoint must be made reachable and secured separately |
+
+The same-node recipes use one of these alternative paths:
+
+```text
+one managed node (one Linux operating system and Docker host)
+├─ host filesystem (Unix-socket path)
+│  └─ socket directory bind-mounted into both containers
+└─ Docker (TCP path)
+   └─ shared container network
+      ├─ Nextcloud container
+      └─ Valkey container
+```
+
+A remote layout crosses both managed-node and container-network boundaries:
+
+```text
+managed node A (Linux host OS)
+└─ Docker
+   └─ Nextcloud container network
+      └─ Nextcloud container
+                 │ outbound TCP
+                 ▼
+      container-network boundary
+                 │
+      managed-node boundary / egress
+                 │
+                 ▼
+      secured, routed network ◄──── other hosts
+                 │
+                 ▼
+      managed-node B ingress / deliberately exposed TCP endpoint
+                 │
+      container-network boundary
+                 ▼
+managed node B (Linux host OS)
+└─ Docker
+   └─ Valkey container network
+      └─ Valkey container
+```
+
+Both TCP recipes below keep Nextcloud and Valkey on the same managed node. A remote endpoint must be made reachable and secured separately. To learn more about Nextcloud memory caching, see the [Nextcloud documentation](https://docs.nextcloud.com/server/latest/admin_manual/configuration_server/caching_configuration.html#id2).
 
 #### Setting up a dedicated Valkey instance
 
@@ -105,15 +151,15 @@ To create a dedicated instance for Nextcloud, you can follow the steps below:
 2. Create a new `vars.yml` file for the dedicated instance
 3. Edit the existing `vars.yml` file for the main host
 
-*See [this page](../running-multiple-instances.md) for details about configuring multiple instances of Valkey on the same server.*
+A **supplementary inventory host** is an additional Ansible inventory identity with its own `host_vars`; it can target the same managed node—the same server or VM—as the main inventory host. See [Inventory hosts and managed nodes](../running-multiple-instances.md#inventory-hosts-and-managed-nodes) for the full model and setup.
 
 This recipe intentionally installs Nextcloud and its dedicated Valkey instance on the same managed node. It connects them through a host-mounted Unix socket and orders their local systemd services, so the inventory example uses the same `ansible_host` value for both inventory hosts. A Valkey deployment on another managed node requires separately exposing and securing Valkey over TCP and configuring Nextcloud for that reachable endpoint. It also needs separate service coordination, because the local systemd dependency shown below cannot order a service on another managed node; that remote topology is not covered here.
 
 ##### Adjust `hosts`
 
-At first, you need to adjust `inventory/hosts` file to add a supplementary host for Nextcloud.
+At first, adjust `inventory/hosts` to add a supplementary inventory host for Nextcloud's dedicated Valkey instance.
 
-The content should be something like below. Make sure to replace `mash.example.com` with your hostname and `YOUR_SERVER_IP_ADDRESS_HERE` with the IP address of the managed node, respectively.
+The content should be something like below. Make sure to replace `mash.example.com` with your hostname and `YOUR_SERVER_IP_ADDRESS_HERE` with the address of the managed node, respectively. This recipe targets one server or VM through two inventory hosts, so set the same `ansible_host` value for both.
 
 ```ini
 [mash_servers]
@@ -123,21 +169,25 @@ mash_example_com
 [mash_example_com]
 mash.example.com ansible_host=YOUR_SERVER_IP_ADDRESS_HERE
 mash.example.com-nextcloud-deps ansible_host=YOUR_SERVER_IP_ADDRESS_HERE
-…
+# Other inventory entries can follow
 ```
 
 `mash_example_com` can be any valid Ansible inventory group name and does not need to match the managed node's hostname.
 
-You can just add an entry for the supplementary host to `[mash_example_com]` if there are other entries there already.
+You can just add an entry for the supplementary inventory host to `[mash_example_com]` if there are other entries there already.
 
 ##### Create `vars.yml` for the dedicated instance
 
-Then, create a new directory where `vars.yml` for the supplementary host is stored. If `mash.example.com` is your main host, name the directory as `mash.example.com-nextcloud-deps`. Its path therefore will be `inventory/host_vars/mash.example.com-nextcloud-deps`.
+Then, create a new directory where `vars.yml` for the supplementary inventory host is stored. If `mash.example.com` is your main inventory host, name the directory as `mash.example.com-nextcloud-deps`. Its path therefore will be `inventory/host_vars/mash.example.com-nextcloud-deps`.
 
-After creating the directory, add a new `vars.yml` file inside it with a content below. It will have running the playbook create a `mash-nextcloud-valkey` instance on the new host, setting `/mash/nextcloud-valkey` to the base directory of the dedicated Valkey instance.
+After creating the directory, add a new `vars.yml` file inside it with the content below. Running the playbook for this supplementary inventory host will create a `mash-nextcloud-valkey` instance on the managed node, using `/mash/nextcloud-valkey` as its base directory.
 
 ```yaml
-# This is vars.yml for the supplementary host of Nextcloud.
+# Nextcloud dependencies - supplementary inventory host
+#
+# Inventory host: mash.example.com-nextcloud-deps
+# Purpose: dedicated Valkey for Nextcloud
+# Managed node: same server or VM targeted by mash.example.com
 
 ---
 
@@ -177,44 +227,44 @@ valkey_enabled: true
 
 ##### Edit the main `vars.yml` file
 
-Having configured `vars.yml` for the dedicated instance, add the following configuration to `vars.yml` for the main host, whose path should be `inventory/host_vars/mash.example.com/vars.yml` (replace `mash.example.com` with yours).
+Having configured `vars.yml` for the dedicated instance, add exactly one of the following blocks to the existing `nextcloud` section in the main inventory host's `inventory/host_vars/mash.example.com/vars.yml` file (replace `mash.example.com` with yours).
+
+Do not combine the two blocks. Both modes keep Nextcloud and Valkey on the same managed node: Unix socket mode uses the shared host filesystem, while TCP mode uses a shared Docker network. In Unix socket mode, omit `nextcloud_redis_hostname` and any dedicated-Valkey entry from `nextcloud_container_additional_networks_custom`; the role normalizes the effective socket port to `0`, so no port setting is needed. In TCP mode, omit `nextcloud_redis_socket_path_host`.
+
+Unix socket mode:
 
 ```yaml
-########################################################################
-#                                                                      #
-# nextcloud                                                            #
-#                                                                      #
-########################################################################
-
-# Add the base configuration as specified above
-
-# Make sure the connection via Unix domain socket is enabled
-# Set to `false` to enable TCP connection instead
-nextcloud_redis_socket_enabled: true
-
 # Connect Nextcloud to its dedicated Valkey instance via the Unix domain socket
-#
-# Alternatively, if you set `nextcloud_redis_socket_enabled` to `false`,
-# - Add the dedicated Valkey instance (mash-nextcloud-valkey) to `nextcloud_redis_hostname`
-# - Add its network (mash-nextcloud-valkey) to `nextcloud_container_additional_networks_custom`
+nextcloud_redis_socket_enabled: true
 nextcloud_redis_socket_path_host: /mash/nextcloud-valkey/run
 
-# Make sure the Nextcloud service (mash-nextcloud.service) starts after its dedicated Valkey service (mash-nextcloud-valkey.service)
+# Start Nextcloud after its dedicated Valkey service
 nextcloud_systemd_required_services_list_custom:
   - "mash-nextcloud-valkey.service"
-
-########################################################################
-#                                                                      #
-# /nextcloud                                                           #
-#                                                                      #
-########################################################################
 ```
 
-Running the installation command will create the dedicated Valkey instance named `mash-nextcloud-valkey`.
+TCP mode:
+
+```yaml
+# Connect Nextcloud to its dedicated Valkey instance via TCP
+nextcloud_redis_socket_enabled: false
+nextcloud_redis_hostname: mash-nextcloud-valkey
+nextcloud_redis_port: 6379
+
+# Connect Nextcloud to the container network of its dedicated Valkey instance
+nextcloud_container_additional_networks_custom:
+  - "mash-nextcloud-valkey"
+
+# Start Nextcloud after its dedicated Valkey service
+nextcloud_systemd_required_services_list_custom:
+  - "mash-nextcloud-valkey.service"
+```
+
+After adding one block, skip the shared recipe and [continue with the remaining configuration](#continue-after-choosing-a-valkey-layout). Running the playbook for the supplementary inventory host will create the dedicated Valkey instance named `mash-nextcloud-valkey`.
 
 #### Setting up a shared Valkey instance
 
-If you host only Nextcloud on this server, it is fine to set up a single shared Valkey instance.
+If Nextcloud is the only MASH-managed service on this managed node that needs Valkey, and no non-MASH application will connect to the instance, it is fine to use the shared MASH Valkey instance.
 
 To install the single instance and hook Nextcloud to it, add the following configuration to `inventory/host_vars/mash.example.com/vars.yml`:
 
@@ -232,38 +282,44 @@ valkey_enabled: true
 # /valkey                                                              #
 #                                                                      #
 ########################################################################
+```
 
-########################################################################
-#                                                                      #
-# nextcloud                                                            #
-#                                                                      #
-########################################################################
+Then add exactly one of the following blocks to the existing `nextcloud` section. Do not combine the two blocks. In Unix socket mode, omit `nextcloud_redis_hostname` and any shared-Valkey entry from `nextcloud_container_additional_networks_custom`; the role normalizes the effective socket port to `0`, so no port setting is needed. In TCP mode, omit `nextcloud_redis_socket_path_host`.
 
-# Add the base configuration as specified above
+Unix socket mode:
 
-# Make sure the connection via Unix domain socket is enabled
-# Set to `false` to enable TCP connection instead
-nextcloud_redis_socket_enabled: true
-
+```yaml
 # Connect Nextcloud to the shared Valkey instance via the Unix domain socket
-#
-# Alternatively, if you set `nextcloud_redis_socket_enabled` to `false`,
-# - Add the shared Valkey instance (mash-valkey) to `nextcloud_redis_hostname`
-# - Add its network (mash-valkey) to `nextcloud_container_additional_networks_custom`
+nextcloud_redis_socket_enabled: true
 nextcloud_redis_socket_path_host: "{{ valkey_run_path }}"
 
-# Make sure the Nextcloud service (mash-nextcloud.service) starts after the shared Valkey service (mash-valkey.service)
+# Start Nextcloud after the shared Valkey service
 nextcloud_systemd_required_services_list_custom:
   - "{{ valkey_identifier }}.service"
+```
 
-########################################################################
-#                                                                      #
-# /nextcloud                                                           #
-#                                                                      #
-########################################################################
+TCP mode:
+
+```yaml
+# Connect Nextcloud to the shared Valkey instance via TCP
+nextcloud_redis_socket_enabled: false
+nextcloud_redis_hostname: "{{ valkey_identifier }}"
+nextcloud_redis_port: 6379
+
+# Connect the Nextcloud container to the container network of the shared Valkey service
+nextcloud_container_additional_networks_custom:
+  - "{{ valkey_container_network }}"
+
+# Start Nextcloud after the shared Valkey service
+nextcloud_systemd_required_services_list_custom:
+  - "{{ valkey_identifier }}.service"
 ```
 
 Running the installation command will create the shared Valkey instance named `mash-valkey`.
+
+#### Continue after choosing a Valkey layout
+
+After choosing no Valkey or completing one of the two Valkey recipes, continue with any remaining optional configuration below and then proceed to [Installation](#installation).
 
 ### Samba (optional)
 
@@ -271,22 +327,57 @@ You can enable [Samba](https://www.samba.org/) external Windows fileshares using
 
 ## Installation
 
-If you have decided to install the dedicated Valkey instance for Nextcloud, make sure to run the [installing](../installing.md) command for the supplementary host (`mash.example.com-nextcloud-deps`) first, before running it for the main host (`mash.example.com`).
+If you chose a dedicated Valkey instance, run the [installation](../installing.md) separately for the supplementary inventory host before the main inventory host:
 
-Use `-l` as shown in [Installation](../running-multiple-instances.md#installation) to run these as separate limited installations. Do not rely on an unscoped `just install-all` or `just setup-all` command to serialize them; Ansible may run inventory aliases which target the same managed node in parallel.
+```sh
+just install-all -l mash.example.com-nextcloud-deps
+just install-all -l mash.example.com
+```
+
+Use `-l` as shown in [Installation](../running-multiple-instances.md#installation) to keep these as separate limited installations. Do not rely on an unscoped `just install-all` or `just setup-all` command to serialize them; Ansible may run inventory aliases which target the same managed node in parallel. If you chose the shared or no-Valkey layout, run the normal installation for the main inventory host.
 
 ## Usage
 
-After running the command for installation, the Nextcloud instance becomes available at the URL specified with `nextcloud_hostname` and `nextcloud_path_prefix`. With the configuration above, the service is hosted at `https://mash.example.com/nextcloud`.
-
-Before logging in to the instance, update the configuration (URL paths, trusted reverse-proxies, etc.) by running the command below:
+After the initial installation, run this command once before logging in:
 
 ```sh
-just run-tags adjust-nextcloud-config
+just run-tags adjust-nextcloud-config -l mash.example.com
 ```
 
->[!NOTE]
-> You should re-run the command every time the Nextcloud version is updated.
+It applies settings which the role stores inside Nextcloud's persisted configuration, including URL and path settings, trusted proxies, Valkey and memory-cache settings, and values from `nextcloud_config_parameters_*`. Run it again after every Nextcloud version update and whenever you change one of these settings.
+
+The Nextcloud instance is then available at the URL specified with `nextcloud_hostname` and `nextcloud_path_prefix`. With the configuration above, the service is hosted at `https://mash.example.com/nextcloud`.
+
+### Changing or disabling Valkey
+
+The Redis endpoint settings enable Nextcloud's Valkey integration, while `nextcloud_redis_socket_enabled` only selects how Nextcloud connects. The selector and `nextcloud_redis_port` have no effect when both `nextcloud_redis_hostname` and `nextcloud_redis_socket_path_host` are unset or empty.
+
+When changing an existing configuration, first make the complete target state explicit:
+
+- To use a Unix socket, use the complete socket block for your chosen Valkey setup, remove `nextcloud_redis_hostname`, and remove that Valkey instance from `nextcloud_container_additional_networks_custom` if the entry is no longer needed. The role always passes effective port `0` in socket mode; a leftover `nextcloud_redis_port` value is ignored, but removing a stale TCP-only override keeps the target state clear.
+- To use TCP, use the complete TCP block for your chosen Valkey setup, remove `nextcloud_redis_socket_path_host`, and ensure `nextcloud_redis_port` resolves to the endpoint's TCP port. Remove a stale `0` override to use the default `6379`, or set the actual port.
+- To stop using Valkey in Nextcloud, remove both endpoint settings and the corresponding Valkey entries from `nextcloud_container_additional_networks_custom` and `nextcloud_systemd_required_services_list_custom`.
+
+The order depends on the target state:
+
+#### Enabling Valkey or switching connection
+
+After selecting a complete socket or TCP state, run the [installation](#installation) first and then run `just run-tags adjust-nextcloud-config -l mash.example.com`. The installation updates the container environment, mounts, networks, and systemd dependencies; the adjustment writes the matching Redis and memory-cache settings to Nextcloud's persisted configuration.
+
+#### Disabling Valkey integration
+
+Keep the old Valkey service and connection available while removing both endpoint settings and the related network and systemd entries from your inventory. These inventory edits do not change the existing container until you rerun the installation, so do not stop Valkey yet. Run `just run-tags adjust-nextcloud-config -l mash.example.com` first. This removes Nextcloud's persisted `redis`, `memcache.distributed`, and `memcache.locking` settings in one configuration import while the existing container can still reach the old endpoint.
+
+Only after that adjustment succeeds, rerun the [installation](#installation). This removes the Redis environment, socket mount, session configuration, network attachment, and systemd dependency from the Nextcloud container and service.
+
+Recovery depends on how far the transition progressed:
+
+- If only the old Valkey service stopped and the Nextcloud installation has not yet removed its runtime wiring, restart that service while keeping the disabled target state in the inventory. Then retry the configuration adjustment and continue with the installation.
+- If the installation already removed the old runtime wiring, temporarily restore the previous endpoint, network, and systemd settings in the inventory and rerun the installation. Confirm that Nextcloud is healthy, reapply the disabled target state in the inventory, run the configuration adjustment, and only then run the installation again.
+
+After completing the applicable two runs, use `just run-tags query-status-nextcloud -l mash.example.com` to verify that Nextcloud starts, then check Nextcloud's administration overview for cache or file-locking warnings. To roll back, restore the previous complete endpoint, network, and systemd settings, run the installation, and then run the configuration adjustment again.
+
+Removing Nextcloud's integration settings does not disable or uninstall the Valkey service and does not delete its data. Keep a shared instance if another service uses it. Treat removal of an unused dedicated instance and its data as a separate lifecycle decision.
 
 ### Checking SMTP server configuration
 
@@ -333,7 +424,7 @@ nextcloud_ldap_agent_name_uid: USERNAME_FOR_BINDING_HERE
 Run the command below to configure the LDAP application on the Nextcloud instance, so that the instance connects to the LLDAP server:
 
 ```sh
-just run-tags set-ldap-config-nextcloud -e agent_password=PASSWORD_OF_BIND_USER_HERE
+just run-tags set-ldap-config-nextcloud -e agent_password=PASSWORD_OF_BIND_USER_HERE -l mash.example.com
 ```
 
 After running the command successfully, the application's server tab should look like below (note: `uid` is set to `admin`):
@@ -359,7 +450,7 @@ By default, this playbook is configured to automatically integrate the Euro-Offi
 After installing both Euro-Office and Nextcloud, run this command to install and configure the Nextcloud Office application:
 
 ```sh
-just run-tags install-nextcloud-app-eurooffice
+just run-tags install-nextcloud-app-eurooffice -l mash.example.com
 ```
 
 You should then be able to open any document (`.doc`, `.odt`, `.pdf`, etc.) and create new ones in Nextcloud Files with the Nextcloud Office application.
@@ -375,7 +466,7 @@ By default, this playbook is configured to automatically integrate the CODE inst
 After installing both CODE and Nextcloud, run this command to install and configure the Nextcloud Office (Collabora) application:
 
 ```sh
-just run-tags install-nextcloud-app-richdocuments
+just run-tags install-nextcloud-app-richdocuments -l mash.example.com
 ```
 
 Open the URL `https://mash.example.com/nextcloud/settings/admin/richdocuments` to have the instance set up the connection with the CODE instance.

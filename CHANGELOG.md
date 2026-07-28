@@ -1,5 +1,11 @@
 # 2026-07-28
 
+## Nextcloud Valkey socket connections require explicit selection
+
+On 2026-04-08, when MASH updated the Nextcloud role to `v33.0.2-3`, the default value of `nextcloud_redis_socket_enabled` changed from `true` to `false`. Existing configurations which set `nextcloud_redis_socket_path_host` but relied on the old implicit socket selection must now add `nextcloud_redis_socket_enabled: true`.
+
+Alternatively, switch to a complete TCP configuration or remove both Redis endpoint settings to disable Nextcloud's Valkey integration. See [Changing or disabling Valkey](./docs/services/nextcloud.md#changing-or-disabling-valkey) for the supported target states and the steps required after changing an existing installation.
+
 ## (Backward Compatibility Break) ntfy users are now declared with hashed passwords
 
 This only affects you if you have enabled authentication for [ntfy](docs/services/ntfy.md) via `ntfy_credentials`.
