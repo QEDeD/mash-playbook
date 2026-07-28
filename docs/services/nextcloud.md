@@ -209,7 +209,7 @@ valkey_enabled: true
 
 Having configured `vars.yml` for the dedicated instance, add exactly one of the following blocks to the existing `nextcloud` section in the main inventory host's `inventory/host_vars/mash.example.com/vars.yml` file (replace `mash.example.com` with yours).
 
-Do not combine the two blocks. Both modes keep Nextcloud and Valkey on the same managed node: Unix socket mode uses the shared host filesystem, while TCP mode uses a shared Docker network. In Unix socket mode, omit `nextcloud_redis_hostname` and any dedicated-Valkey entry from `nextcloud_container_additional_networks_custom`. In TCP mode, omit `nextcloud_redis_socket_path_host`.
+Do not combine the two blocks. Both modes keep Nextcloud and Valkey on the same managed node: Unix socket mode uses the shared host filesystem, while TCP mode uses a shared Docker network. In Unix socket mode, omit `nextcloud_redis_hostname` and any dedicated-Valkey entry from `nextcloud_container_additional_networks_custom`; the role normalizes the effective socket port to `0`, so no port setting is needed. In TCP mode, omit `nextcloud_redis_socket_path_host`.
 
 Unix socket mode:
 
@@ -217,7 +217,6 @@ Unix socket mode:
 # Connect Nextcloud to its dedicated Valkey instance via the Unix domain socket
 nextcloud_redis_socket_enabled: true
 nextcloud_redis_socket_path_host: /mash/nextcloud-valkey/run
-nextcloud_redis_port: 0
 
 # Start Nextcloud after its dedicated Valkey service
 nextcloud_systemd_required_services_list_custom:
@@ -265,7 +264,7 @@ valkey_enabled: true
 ########################################################################
 ```
 
-Then add exactly one of the following blocks to the existing `nextcloud` section. Do not combine the two blocks. In Unix socket mode, omit `nextcloud_redis_hostname` and any shared-Valkey entry from `nextcloud_container_additional_networks_custom`. In TCP mode, omit `nextcloud_redis_socket_path_host`.
+Then add exactly one of the following blocks to the existing `nextcloud` section. Do not combine the two blocks. In Unix socket mode, omit `nextcloud_redis_hostname` and any shared-Valkey entry from `nextcloud_container_additional_networks_custom`; the role normalizes the effective socket port to `0`, so no port setting is needed. In TCP mode, omit `nextcloud_redis_socket_path_host`.
 
 Unix socket mode:
 
@@ -273,7 +272,6 @@ Unix socket mode:
 # Connect Nextcloud to the shared Valkey instance via the Unix domain socket
 nextcloud_redis_socket_enabled: true
 nextcloud_redis_socket_path_host: "{{ valkey_run_path }}"
-nextcloud_redis_port: 0
 
 # Start Nextcloud after the shared Valkey service
 nextcloud_systemd_required_services_list_custom:
@@ -336,7 +334,7 @@ The Redis endpoint settings enable Nextcloud's Valkey integration, while `nextcl
 
 When changing an existing configuration, first make the complete target state explicit:
 
-- To use a Unix socket, use the complete socket block for your chosen Valkey setup, remove `nextcloud_redis_hostname`, and remove that Valkey instance from `nextcloud_container_additional_networks_custom` if the entry is no longer needed. Unix sockets require `nextcloud_redis_port: 0`; remove a stale port override or set it to `0`.
+- To use a Unix socket, use the complete socket block for your chosen Valkey setup, remove `nextcloud_redis_hostname`, and remove that Valkey instance from `nextcloud_container_additional_networks_custom` if the entry is no longer needed. The role always passes effective port `0` in socket mode; a leftover `nextcloud_redis_port` value is ignored, but removing a stale TCP-only override keeps the target state clear.
 - To use TCP, use the complete TCP block for your chosen Valkey setup, remove `nextcloud_redis_socket_path_host`, and ensure `nextcloud_redis_port` resolves to the endpoint's TCP port. Remove a stale `0` override to use the default `6379`, or set the actual port.
 - To stop using Valkey in Nextcloud, remove both endpoint settings and the corresponding Valkey entries from `nextcloud_container_additional_networks_custom` and `nextcloud_systemd_required_services_list_custom`.
 
@@ -351,6 +349,8 @@ After selecting a complete socket or TCP state, run the [installation](#installa
 Keep the old Valkey service and connection available while removing both endpoint settings and the related network and systemd entries from your inventory. These inventory edits do not change the existing container until you rerun the installation, so do not stop Valkey yet. Run `just run-tags adjust-nextcloud-config` first. This atomically removes Nextcloud's persisted `redis`, `memcache.distributed`, and `memcache.locking` settings while the existing container can still reach the old endpoint.
 
 Only after that adjustment succeeds, rerun the [installation](#installation). This removes the Redis environment, socket mount, session configuration, network attachment, and systemd dependency from the Nextcloud container and service.
+
+If the old endpoint became unavailable before the adjustment, restore its previous service, endpoint, and connection settings before retrying this sequence.
 
 After completing the applicable two runs, use `just run-tags query-status-nextcloud` to verify that Nextcloud starts, then check Nextcloud's administration overview for cache or file-locking warnings. To roll back, restore the previous complete endpoint, network, and systemd settings, run the installation, and then run the configuration adjustment again.
 
