@@ -93,7 +93,7 @@ First choose the Valkey layout which matches your desired state:
 
 - **No Valkey** — the simplest deployment. Though running Valkey is recommended, you can start without it. Continue at [Continue after choosing a Valkey layout](#continue-after-choosing-a-valkey-layout).
 - **A dedicated Valkey instance** — recommended if another service uses or may later use Valkey. Sharing one instance between services has security concerns and may cause data conflicts, as described in [Configuring Valkey](valkey.md).
-- **The shared Valkey instance** — reasonable when Nextcloud is the only service which needs Valkey on this managed node.
+- **The shared Valkey instance** — reasonable when Nextcloud will be its only consumer.
 
 The recipes on this page cover these placements and connection modes:
 
@@ -246,7 +246,7 @@ After adding one block, skip the shared recipe and [continue with the remaining 
 
 #### Setting up a shared Valkey instance
 
-If you host only Nextcloud on this server, it is fine to set up a single shared Valkey instance.
+If Nextcloud will be the only service using the shared Valkey instance, it is fine to set one up.
 
 To install the single instance and hook Nextcloud to it, add the following configuration to `inventory/host_vars/mash.example.com/vars.yml`:
 
