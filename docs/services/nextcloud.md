@@ -114,13 +114,31 @@ one managed node (one Linux operating system and Docker host)
       └─ Valkey container
 ```
 
-A remote layout crosses additional layers:
+A remote layout crosses both managed-node and container-network boundaries:
 
 ```text
-managed node A (Linux/Docker host)              managed node B (Linux/Docker host)
-└─ Docker                                      └─ Docker
-   └─ local container network                     └─ local container network
-      └─ Nextcloud container ── secured TCP ─────────► Valkey container
+managed node A (Linux host OS)
+└─ Docker
+   └─ Nextcloud container network
+      └─ Nextcloud container
+                 │ outbound TCP
+                 ▼
+      container-network boundary
+                 │
+      managed-node boundary / egress
+                 │
+                 ▼
+      secured, routed network ◄──── other hosts
+                 │
+                 ▼
+      managed-node B ingress / deliberately exposed TCP endpoint
+                 │
+      container-network boundary
+                 ▼
+managed node B (Linux host OS)
+└─ Docker
+   └─ Valkey container network
+      └─ Valkey container
 ```
 
 Both TCP recipes below keep Nextcloud and Valkey on the same managed node. A remote endpoint must be made reachable and secured separately. To learn more about Nextcloud memory caching, see the [Nextcloud documentation](https://docs.nextcloud.com/server/latest/admin_manual/configuration_server/caching_configuration.html#id2).
@@ -348,11 +366,14 @@ After selecting a complete socket or TCP state, run the [installation](#installa
 
 #### Disabling Valkey integration
 
-Keep the old Valkey service and connection available while removing both endpoint settings and the related network and systemd entries from your inventory. These inventory edits do not change the existing container until you rerun the installation, so do not stop Valkey yet. Run `just run-tags adjust-nextcloud-config -l mash.example.com` first. This atomically removes Nextcloud's persisted `redis`, `memcache.distributed`, and `memcache.locking` settings while the existing container can still reach the old endpoint.
+Keep the old Valkey service and connection available while removing both endpoint settings and the related network and systemd entries from your inventory. These inventory edits do not change the existing container until you rerun the installation, so do not stop Valkey yet. Run `just run-tags adjust-nextcloud-config -l mash.example.com` first. This removes Nextcloud's persisted `redis`, `memcache.distributed`, and `memcache.locking` settings in one configuration import while the existing container can still reach the old endpoint.
 
 Only after that adjustment succeeds, rerun the [installation](#installation). This removes the Redis environment, socket mount, session configuration, network attachment, and systemd dependency from the Nextcloud container and service.
 
-If the old endpoint became unavailable before the adjustment, restore its previous service, endpoint, and connection settings before retrying this sequence.
+Recovery depends on how far the transition progressed:
+
+- If only the old Valkey service stopped and the Nextcloud installation has not yet removed its runtime wiring, restart that service while keeping the disabled target state in the inventory. Then retry the configuration adjustment and continue with the installation.
+- If the installation already removed the old runtime wiring, temporarily restore the previous endpoint, network, and systemd settings in the inventory and rerun the installation. Confirm that Nextcloud is healthy, reapply the disabled target state in the inventory, run the configuration adjustment, and only then run the installation again.
 
 After completing the applicable two runs, use `just run-tags query-status-nextcloud -l mash.example.com` to verify that Nextcloud starts, then check Nextcloud's administration overview for cache or file-locking warnings. To roll back, restore the previous complete endpoint, network, and systemd settings, run the installation, and then run the configuration adjustment again.
 
