@@ -88,11 +88,15 @@ To create a dedicated instance for MediaWiki, you can follow the steps below:
 2. Create a new `vars.yml` file for the dedicated instance
 3. Edit the existing `vars.yml` file for the main host
 
+*See [this page](../running-multiple-instances.md) for details about configuring multiple service instances on the same server.*
+
+This recipe intentionally installs MediaWiki and its dedicated MariaDB instance on the same managed node, connecting their containers through Docker networking on that node. The inventory example therefore uses the same `ansible_host` value for both inventory hosts. A MariaDB deployment on another managed node requires separately exposing and securing MariaDB over TCP and configuring MediaWiki's database connection variables for that reachable endpoint; that remote topology is not covered here.
+
 ##### Adjust `hosts`
 
 At first, you need to adjust `inventory/hosts` file to add a supplementary host for MediaWiki.
 
-The content should be something like below. Make sure to replace `mash.example.com` with your hostname and `YOUR_SERVER_IP_ADDRESS_HERE` with the IP address of the host, respectively. The same IP address should be set to both, unless the MariaDB instance will be served from a different machine.
+The content should be something like below. Make sure to replace `mash.example.com` with your hostname and `YOUR_SERVER_IP_ADDRESS_HERE` with the IP address of the managed node, respectively.
 
 ```ini
 [mash_servers]
@@ -105,7 +109,7 @@ mash.example.com-mediawiki-deps ansible_host=YOUR_SERVER_IP_ADDRESS_HERE
 …
 ```
 
-`mash_example_com` can be any string and does not have to match with the hostname.
+`mash_example_com` can be any valid Ansible inventory group name and does not need to match the managed node's hostname.
 
 You can just add an entry for the supplementary host to `[mash_example_com]` if there are other entries there already.
 
@@ -257,7 +261,21 @@ As the configuration settings specified on that file are basic despite being suf
 
 ## Installation
 
-Because installing a MediaWiki instance requires to invoke [`run.php install`](https://www.mediawiki.org/wiki/Manual:Install.php) and load the generated `LocalSettings.php` file on the container, installation process consists of multiple steps. **Running the [installing](../installing.md) command solely does not start up the MediaWiki instance.** Refer to [this section](https://github.com/mother-of-all-self-hosting/ansible-role-mediawiki/blob/main/docs/configuring-mediawiki.md#installing) for the instruction.
+If you configured the dedicated MariaDB instance above, first run the installation for its supplementary inventory host:
+
+```sh
+just install-all -l mash.example.com-mediawiki-deps
+```
+
+Then continue with the MediaWiki role's [installation procedure](https://github.com/mother-of-all-self-hosting/ansible-role-mediawiki/blob/main/docs/configuring-mediawiki.md#installing), starting with the service installation for the main inventory host:
+
+```sh
+just install-all -l mash.example.com
+```
+
+Keep the `-l mash.example.com` limit on every subsequent Ansible or `just` command from that procedure. Installing the service alone does not complete MediaWiki's initialization; the linked procedure also invokes [`run.php install`](https://www.mediawiki.org/wiki/Manual:Install.php), generates and adjusts `LocalSettings.php`, and then mounts it into the container.
+
+Do not replace the two limited installation commands with an unscoped `just install-all` or `just setup-all` command. Ansible may run inventory aliases which target the same managed node in parallel.
 
 ## Usage
 
