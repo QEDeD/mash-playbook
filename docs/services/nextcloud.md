@@ -92,8 +92,8 @@ Valkey can optionally be enabled to improve Nextcloud performance and to prevent
 First choose the Valkey layout which matches your desired state:
 
 - **No Valkey** — the simplest deployment. Though running Valkey is recommended, you can start without it. Continue at [Continue after choosing a Valkey layout](#continue-after-choosing-a-valkey-layout).
-- **A dedicated Valkey instance** — recommended if another service uses or may later use Valkey. Sharing one instance between services has security concerns and may cause data conflicts, as described in [Configuring Valkey](valkey.md).
-- **The shared Valkey instance** — reasonable when Nextcloud is the only service configured to use this instance, whether MASH-managed or not.
+- **A dedicated Valkey instance** — recommended if another MASH-managed service uses or may later use Valkey, or if another application would otherwise connect to the same instance. Sharing one instance between services has security concerns and may cause data conflicts, as described in [Configuring Valkey](valkey.md).
+- **The shared MASH Valkey instance** — reasonable when Nextcloud is the only MASH-managed service on this managed node that needs Valkey and no non-MASH application will connect to the instance.
 
 The practical transport rule is: **remote Valkey requires TCP, but TCP does not imply remote**. The recipes on this page cover these placements and connection modes:
 
@@ -246,7 +246,7 @@ After adding one block, skip the shared recipe and [continue with the remaining 
 
 #### Setting up a shared Valkey instance
 
-If Nextcloud is the only service configured to use the shared Valkey instance, whether MASH-managed or not, it is fine to set one up.
+If Nextcloud is the only MASH-managed service on this managed node that needs Valkey, and no non-MASH application will connect to the instance, it is fine to use the shared MASH Valkey instance.
 
 To install the single instance and hook Nextcloud to it, add the following configuration to `inventory/host_vars/mash.example.com/vars.yml`:
 
@@ -323,7 +323,7 @@ Use `-l` as shown in [Installation](../running-multiple-instances.md#installatio
 After the initial installation, run this command once before logging in:
 
 ```sh
-just run-tags adjust-nextcloud-config
+just run-tags adjust-nextcloud-config -l mash.example.com
 ```
 
 It applies settings which the role stores inside Nextcloud's persisted configuration, including URL and path settings, trusted proxies, Valkey and memory-cache settings, and values from `nextcloud_config_parameters_*`. Run it again after every Nextcloud version update and whenever you change one of these settings.
@@ -344,17 +344,17 @@ The order depends on the target state:
 
 #### Enabling Valkey or switching connection
 
-After selecting a complete socket or TCP state, run the [installation](#installation) first and then run `just run-tags adjust-nextcloud-config`. The installation updates the container environment, mounts, networks, and systemd dependencies; the adjustment writes the matching Redis and memory-cache settings to Nextcloud's persisted configuration.
+After selecting a complete socket or TCP state, run the [installation](#installation) first and then run `just run-tags adjust-nextcloud-config -l mash.example.com`. The installation updates the container environment, mounts, networks, and systemd dependencies; the adjustment writes the matching Redis and memory-cache settings to Nextcloud's persisted configuration.
 
 #### Disabling Valkey integration
 
-Keep the old Valkey service and connection available while removing both endpoint settings and the related network and systemd entries from your inventory. These inventory edits do not change the existing container until you rerun the installation, so do not stop Valkey yet. Run `just run-tags adjust-nextcloud-config` first. This atomically removes Nextcloud's persisted `redis`, `memcache.distributed`, and `memcache.locking` settings while the existing container can still reach the old endpoint.
+Keep the old Valkey service and connection available while removing both endpoint settings and the related network and systemd entries from your inventory. These inventory edits do not change the existing container until you rerun the installation, so do not stop Valkey yet. Run `just run-tags adjust-nextcloud-config -l mash.example.com` first. This atomically removes Nextcloud's persisted `redis`, `memcache.distributed`, and `memcache.locking` settings while the existing container can still reach the old endpoint.
 
 Only after that adjustment succeeds, rerun the [installation](#installation). This removes the Redis environment, socket mount, session configuration, network attachment, and systemd dependency from the Nextcloud container and service.
 
 If the old endpoint became unavailable before the adjustment, restore its previous service, endpoint, and connection settings before retrying this sequence.
 
-After completing the applicable two runs, use `just run-tags query-status-nextcloud` to verify that Nextcloud starts, then check Nextcloud's administration overview for cache or file-locking warnings. To roll back, restore the previous complete endpoint, network, and systemd settings, run the installation, and then run the configuration adjustment again.
+After completing the applicable two runs, use `just run-tags query-status-nextcloud -l mash.example.com` to verify that Nextcloud starts, then check Nextcloud's administration overview for cache or file-locking warnings. To roll back, restore the previous complete endpoint, network, and systemd settings, run the installation, and then run the configuration adjustment again.
 
 Removing Nextcloud's integration settings does not disable or uninstall the Valkey service and does not delete its data. Keep a shared instance if another service uses it. Treat removal of an unused dedicated instance and its data as a separate lifecycle decision.
 
@@ -403,7 +403,7 @@ nextcloud_ldap_agent_name_uid: USERNAME_FOR_BINDING_HERE
 Run the command below to configure the LDAP application on the Nextcloud instance, so that the instance connects to the LLDAP server:
 
 ```sh
-just run-tags set-ldap-config-nextcloud -e agent_password=PASSWORD_OF_BIND_USER_HERE
+just run-tags set-ldap-config-nextcloud -e agent_password=PASSWORD_OF_BIND_USER_HERE -l mash.example.com
 ```
 
 After running the command successfully, the application's server tab should look like below (note: `uid` is set to `admin`):
@@ -429,7 +429,7 @@ By default, this playbook is configured to automatically integrate the Euro-Offi
 After installing both Euro-Office and Nextcloud, run this command to install and configure the Nextcloud Office application:
 
 ```sh
-just run-tags install-nextcloud-app-eurooffice
+just run-tags install-nextcloud-app-eurooffice -l mash.example.com
 ```
 
 You should then be able to open any document (`.doc`, `.odt`, `.pdf`, etc.) and create new ones in Nextcloud Files with the Nextcloud Office application.
@@ -445,7 +445,7 @@ By default, this playbook is configured to automatically integrate the CODE inst
 After installing both CODE and Nextcloud, run this command to install and configure the Nextcloud Office (Collabora) application:
 
 ```sh
-just run-tags install-nextcloud-app-richdocuments
+just run-tags install-nextcloud-app-richdocuments -l mash.example.com
 ```
 
 Open the URL `https://mash.example.com/nextcloud/settings/admin/richdocuments` to have the instance set up the connection with the CODE instance.
