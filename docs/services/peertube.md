@@ -250,7 +250,7 @@ To actually have the service use (and get messages sent through the exim-relay s
 
 If you have decided to install the dedicated Valkey instance for PeerTube, make sure to run the [installing](../installing.md) command for the supplementary host (`mash.example.com-peertube-deps`) first, before running it for the main host (`mash.example.com`).
 
-Note that running the `just` commands for installation (`just install-all` or `just setup-all`) automatically takes care of the order. See [here](../running-multiple-instances.md#1-adjust-hosts) for more details about it.
+Use `-l` as shown in [Installation](../running-multiple-instances.md#installation) to run these as separate limited installations. Do not rely on an unscoped `just install-all` or `just setup-all` command to serialize them; Ansible may run inventory aliases which target the same managed node in parallel.
 
 ### Adjust Traefik network's IP address range
 

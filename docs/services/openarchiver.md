@@ -265,7 +265,7 @@ Apache Tika Server is available on the playbook. Enabling it configures the inst
 
 If you have decided to install the dedicated Valkey instance for Open Archiver, make sure to run the [installing](../installing.md) command for the supplementary host (`mash.example.com-openarchiver-deps`) first, before running it for the main host (`mash.example.com`).
 
-Note that running the `just` commands for installation (`just install-all` or `just setup-all`) automatically takes care of the order. See [here](../running-multiple-instances.md#1-adjust-hosts) for more details about it.
+Use `-l` as shown in [Installation](../running-multiple-instances.md#installation) to run these as separate limited installations. Do not rely on an unscoped `just install-all` or `just setup-all` command to serialize them; Ansible may run inventory aliases which target the same managed node in parallel.
 
 ## Usage
 
