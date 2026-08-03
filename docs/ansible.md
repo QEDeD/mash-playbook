@@ -4,6 +4,7 @@ SPDX-FileCopyrightText: 2020 Hanno J. Gödecke
 SPDX-FileCopyrightText: 2020 Aaron Raimist
 SPDX-FileCopyrightText: 2022 Kai Biebel
 SPDX-FileCopyrightText: 2024 - 2025 Suguru Hirahara
+SPDX-FileCopyrightText: 2026 MASH project contributors
 
 SPDX-License-Identifier: AGPL-3.0-or-later
 -->
@@ -12,7 +13,13 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 
 This playbook is meant to be run using [Ansible](https://www.ansible.com/).
 
-Ansible typically runs on your local computer and carries out tasks on a remote server. If your local computer cannot run Ansible, you can also run Ansible on some server somewhere (including the server you wish to install to).
+## Control and managed nodes
+
+Ansible calls the system where it runs the **control node**, and each target system it configures a **managed node**. For this playbook, a managed node is normally a Linux system—the operating-system environment running on a server or virtual machine (VM). The Docker containers created inside it are services on that managed node, not separate managed nodes.
+
+The control node is typically your local computer, while the managed node is a remote server or VM. If your local computer cannot run Ansible, you can instead run it on another system—including the managed node itself.
+
+See [Ansible's basic concepts](https://docs.ansible.com/projects/ansible/latest/getting_started/basic_concepts.html) for the formal definitions.
 
 ## Supported Ansible versions
 
