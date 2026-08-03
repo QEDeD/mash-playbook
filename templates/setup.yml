@@ -848,7 +848,54 @@
 
     # role-specific:qbittorrent
     - role: galaxy/qbittorrent
+      vars:
+        # Role parameters outrank inventory variables. This preserves
+        # qbittorrent_vpn_enabled as intent while still allowing the role to
+        # detect and reject contradictory effective qBittorrent settings.
+        qbittorrent_container_network_enforcement_enabled: true
+        qbittorrent_container_network_enforcement_intent: >-
+          {{ qbittorrent_vpn_enabled | default(false) | bool }}
+        qbittorrent_container_network_enforcement_owner_enabled: >-
+          {{ gluetun_enabled | default(false) | bool }}
+        qbittorrent_container_network_enforcement_expected_owner_container: >-
+          {{ qbittorrent_identifier }}-vpn
+        qbittorrent_container_network_enforcement_expected_owner_systemd_service: >-
+          {{ qbittorrent_identifier }}-vpn.service
+        qbittorrent_container_network_enforcement_expected_resolv_conf_path: >-
+          {{
+            mash_playbook_base_path
+            + '/'
+            + mash_playbook_service_base_directory_name_prefix
+            + 'qbittorrent-vpn/companion-resolv.conf'
+          }}
+        qbittorrent_container_network_enforcement_expected_owner_contract_label: >-
+          io.mash.gluetun.fail-closed-contract
+        qbittorrent_container_network_enforcement_expected_owner_contract_label_value: >-
+          v1
+        qbittorrent_container_network_enforcement_expected_traefik_labels_enabled: >-
+          {{
+            mash_playbook_traefik_labels_enabled
+            and
+            mash_playbook_reverse_proxy_type
+            == 'playbook-managed-traefik'
+          }}
+        qbittorrent_container_network_enforcement_expected_traefik_network: >-
+          {{
+            qbittorrent_identifier + '-vpn'
+            if
+              mash_playbook_traefik_labels_enabled
+              and
+              mash_playbook_reverse_proxy_type
+              == 'playbook-managed-traefik'
+            else ''
+          }}
     # /role-specific:qbittorrent
+
+    # role-specific:gluetun
+    # The protected qBittorrent unit must be rendered before Gluetun can
+    # install an owner unit whose reverse Wants= relationship names it.
+    - role: galaxy/gluetun
+    # /role-specific:gluetun
 
     # role-specific:rabbitmq
     - role: galaxy/rabbitmq

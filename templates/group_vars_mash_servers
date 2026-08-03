@@ -303,7 +303,7 @@ mash_playbook_devture_systemd_service_manager_services_list_auto_itemized:
 
   # role-specific:container_socket_proxy
   - |-
-    {{ ({'name': (container_socket_proxy_identifier + '.service'), 'priority': 200, 'restart_necessary': (container_socket_proxy_restart_necessary | bool), 'groups': ['mash', 'reverse-proxies', 'container-socket-proxy']} if container_socket_proxy_enabled else omit) }}
+    {{ ({'name': (container_socket_proxy_identifier + '.service'), 'priority': 200, 'restart_necessary': (container_socket_proxy_restart_necessary | bool), 'groups': ['mash', 'reverse-proxies', 'container-socket-proxy', 'qbittorrent-vpn-transition']} if container_socket_proxy_enabled else omit) }}
   # /role-specific:container_socket_proxy
 
   # role-specific:cryptpad
@@ -510,6 +510,11 @@ mash_playbook_devture_systemd_service_manager_services_list_auto_itemized:
   - |-
     {{ ({'name': (gitea_identifier + '.service'), 'priority': 2000, 'restart_necessary': (gitea_restart_necessary | bool), 'groups': ['mash', 'gitea']} if gitea_enabled else omit) }}
   # /role-specific:gitea
+
+  # role-specific:gluetun
+  - |-
+    {{ ({'name': (gluetun_identifier + '.service'), 'priority': 1900, 'restart_necessary': (gluetun_restart_necessary | bool), 'groups': ['mash', 'qbittorrent', 'qbittorrent-vpn-transition']} if gluetun_enabled else omit) }}
+  # /role-specific:gluetun
 
   # role-specific:gokapi
   - |-
@@ -1107,7 +1112,7 @@ mash_playbook_devture_systemd_service_manager_services_list_auto_itemized:
 
   # role-specific:qbittorrent
   - |-
-    {{ ({'name': (qbittorrent_identifier + '.service'), 'priority': 2000, 'restart_necessary': (qbittorrent_restart_necessary | bool), 'groups': ['mash', 'qbittorrent']} if qbittorrent_enabled else omit) }}
+    {{ ({'name': (qbittorrent_identifier + '.service'), 'priority': 2000, 'restart_necessary': (qbittorrent_restart_necessary | bool), 'groups': ['mash', 'qbittorrent', 'qbittorrent-vpn-transition']} if qbittorrent_enabled else omit) }}
   # /role-specific:qbittorrent
 
   # role-specific:rabbitmq
@@ -1328,7 +1333,7 @@ mash_playbook_devture_systemd_service_manager_services_list_auto_itemized:
 
   # role-specific:traefik
   - |-
-    {{ ({'name': (traefik_identifier + '.service'), 'priority': 250, 'restart_necessary': (traefik_restart_necessary | bool), 'groups': ['mash', 'traefik', 'reverse-proxies']} if traefik_enabled else omit) }}
+    {{ ({'name': (traefik_identifier + '.service'), 'priority': 250, 'restart_necessary': (traefik_restart_necessary | bool), 'groups': ['mash', 'traefik', 'reverse-proxies', 'qbittorrent-vpn-transition']} if traefik_enabled else omit) }}
   # /role-specific:traefik
 
   # role-specific:traefik_certs_dumper
@@ -2456,10 +2461,18 @@ traefik_systemd_required_services_list: |
     ([container_socket_proxy_identifier + '.service'] if container_socket_proxy_enabled | default(false) else [])
   }}
 
-traefik_container_additional_networks_auto: |
-  {{
-    ([container_socket_proxy_container_network] if container_socket_proxy_enabled | default(false) else [])
-  }}
+mash_playbook_traefik_container_additional_networks_auto_itemized:
+  # Dummy entry, which is not role-specific.
+  # Ensures there's at least one entry defined in the list.
+  - "{{ omit }}"
+
+  - "{{ container_socket_proxy_container_network if container_socket_proxy_enabled | default(false) else omit }}"
+
+  # role-specific:gluetun
+  - "{{ gluetun_container_network if gluetun_enabled and mash_playbook_reverse_proxy_type == 'playbook-managed-traefik' and (qbittorrent_container_labels_traefik_enabled | bool) else omit }}"
+  # /role-specific:gluetun
+
+traefik_container_additional_networks_auto: "{{ mash_playbook_traefik_container_additional_networks_auto_itemized | unique | reject('equalto', omit) | list }}"
 
 mash_playbook_traefix_managed_additional_entrypoints_auto_itemized:
   # Dummy entry, which is not role-specific.
@@ -6842,6 +6855,58 @@ gitea_container_labels_traefik_tls_certResolver: "{{ traefik_certResolver_primar
 ########################################################################
 # /role-specific:gitea
 
+
+
+# role-specific:gluetun
+# role-specific:qbittorrent
+########################################################################
+#                                                                      #
+# Gluetun for qBittorrent                                              #
+#                                                                      #
+########################################################################
+
+gluetun_enabled: "{{ qbittorrent_enabled and qbittorrent_vpn_enabled }}"
+
+gluetun_identifier: "{{ qbittorrent_identifier }}-vpn"
+
+gluetun_base_path: "{{ mash_playbook_base_path }}/{{ mash_playbook_service_base_directory_name_prefix }}qbittorrent-vpn"
+
+gluetun_uid: "{{ mash_playbook_uid }}"
+gluetun_gid: "{{ mash_playbook_gid }}"
+
+gluetun_container_network: "{{ gluetun_identifier }}"
+
+gluetun_control_server_auth_api_key_secret: "{{ (mash_playbook_generic_secret_key + ':gluetun.control.qbittorrent') | hash('sha512') | to_uuid }}"
+
+gluetun_protected_consumers_list: |
+  {{
+    (
+      [
+        {
+          'container_name': qbittorrent_identifier,
+          'systemd_service_name': qbittorrent_identifier + '.service',
+          'systemd_unit_role_marker': '# MASH-Role=qBittorrent',
+        }
+      ]
+      if gluetun_enabled
+      else []
+    )
+  }}
+
+# role-specific:traefik
+# Keep the stable managed-Traefik identity during disable convergence so an
+# existing endpoint is recognized. The role never disconnects by mutable name;
+# an unverified endpoint causes safe network retention.
+gluetun_container_network_known_peer_containers_list: "{{ [traefik_identifier] if mash_playbook_reverse_proxy_type == 'playbook-managed-traefik' else [] }}"
+# /role-specific:traefik
+
+########################################################################
+#                                                                      #
+# /Gluetun for qBittorrent                                             #
+#                                                                      #
+########################################################################
+# /role-specific:qbittorrent
+# /role-specific:gluetun
 
 
 # role-specific:gokapi
@@ -14276,6 +14341,8 @@ prunemate_container_labels_traefik_tls_certResolver: "{{ traefik_certResolver_pr
 
 qbittorrent_enabled: false
 
+qbittorrent_vpn_enabled: false
+
 qbittorrent_identifier: "{{ mash_playbook_service_identifier_prefix }}qbittorrent"
 
 qbittorrent_base_path: "{{ mash_playbook_base_path }}/{{ mash_playbook_service_base_directory_name_prefix }}qbittorrent"
@@ -14283,13 +14350,37 @@ qbittorrent_base_path: "{{ mash_playbook_base_path }}/{{ mash_playbook_service_b
 qbittorrent_uid: "{{ mash_playbook_uid }}"
 qbittorrent_gid: "{{ mash_playbook_gid }}"
 
+# role-specific:gluetun
+qbittorrent_container_network_mode: "{{ 'container' if qbittorrent_vpn_enabled else 'managed' }}"
+qbittorrent_container_network_container: "{{ gluetun_identifier if qbittorrent_vpn_enabled else '' }}"
+qbittorrent_container_network_container_systemd_service: "{{ (gluetun_identifier + '.service') if qbittorrent_vpn_enabled else '' }}"
+qbittorrent_container_network_container_resolv_conf_path: "{{ gluetun_companion_resolv_conf_path if qbittorrent_vpn_enabled else '' }}"
+qbittorrent_container_network_container_contract_label: "{{ gluetun_container_fail_closed_contract_label if qbittorrent_vpn_enabled else '' }}"
+qbittorrent_container_network_container_contract_label_value: "{{ gluetun_container_fail_closed_contract_label_value if qbittorrent_vpn_enabled else '' }}"
+
+qbittorrent_container_hostname: "{{ '' if qbittorrent_vpn_enabled else qbittorrent_identifier }}"
+qbittorrent_container_network: "{{ '' if qbittorrent_vpn_enabled else qbittorrent_identifier }}"
+qbittorrent_container_network_deletion_enabled: "{{ not qbittorrent_vpn_enabled }}"
+
+qbittorrent_container_http_host_bind_port: ""
+qbittorrent_container_torrenting_host_bind_port: ""
+
+qbittorrent_container_extra_arguments_auto: []
+
+mash_playbook_qbittorrent_container_labels_traefik_docker_network_vpn: "{{ gluetun_container_network if qbittorrent_vpn_enabled and mash_playbook_reverse_proxy_type == 'playbook-managed-traefik' and (qbittorrent_container_labels_traefik_enabled | bool) else '' }}"
+# /role-specific:gluetun
+
 qbittorrent_container_additional_networks_auto: |
   {{
-    ([mash_playbook_reverse_proxyable_services_additional_network] if mash_playbook_reverse_proxyable_services_additional_network else [])
+    (
+      []
+      if qbittorrent_vpn_enabled
+      else ([mash_playbook_reverse_proxyable_services_additional_network] if mash_playbook_reverse_proxyable_services_additional_network else [])
+    )
   }}
 
-qbittorrent_container_labels_traefik_enabled: "{{ mash_playbook_traefik_labels_enabled }}"
-qbittorrent_container_labels_traefik_docker_network: "{{ mash_playbook_reverse_proxyable_services_additional_network }}"
+qbittorrent_container_labels_traefik_enabled: "{{ mash_playbook_traefik_labels_enabled and (not qbittorrent_vpn_enabled or mash_playbook_reverse_proxy_type == 'playbook-managed-traefik') }}"
+qbittorrent_container_labels_traefik_docker_network: "{{ mash_playbook_qbittorrent_container_labels_traefik_docker_network_vpn if qbittorrent_vpn_enabled else mash_playbook_reverse_proxyable_services_additional_network }}"
 
 # role-specific:traefik
 qbittorrent_container_labels_traefik_entrypoints: "{{ traefik_entrypoint_primary }}"
