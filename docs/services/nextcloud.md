@@ -348,6 +348,37 @@ It applies settings which the role stores inside Nextcloud's persisted configura
 
 The Nextcloud instance is then available at the URL specified with `nextcloud_hostname` and `nextcloud_path_prefix`. With the configuration above, the service is hosted at `https://mash.example.com/nextcloud`.
 
+### Changing or disabling Valkey
+
+The Redis endpoint settings enable Nextcloud's Valkey integration, while `nextcloud_redis_socket_enabled` only selects how Nextcloud connects. The selector and `nextcloud_redis_port` have no effect when both `nextcloud_redis_hostname` and `nextcloud_redis_socket_path_host` are unset or empty.
+
+When changing an existing configuration, first make the complete target state explicit:
+
+- To use a Unix socket, use the complete socket block for your chosen Valkey setup, remove `nextcloud_redis_hostname`, and remove that Valkey instance from `nextcloud_container_additional_networks_custom` if the entry is no longer needed. The role always passes effective port `0` in socket mode; a leftover `nextcloud_redis_port` value is ignored, but removing a stale TCP-only override keeps the target state clear.
+- To use TCP, use the complete TCP block for your chosen Valkey setup, remove `nextcloud_redis_socket_path_host`, and ensure `nextcloud_redis_port` resolves to the endpoint's TCP port. Remove a stale `0` override to use the default `6379`, or set the actual port.
+- To stop using Valkey in Nextcloud, remove both endpoint settings and the corresponding Valkey entries from `nextcloud_container_additional_networks_custom` and `nextcloud_systemd_required_services_list_custom`.
+
+The order depends on the target state:
+
+#### Enabling Valkey or switching connection
+
+After selecting a complete socket or TCP state, run the [installation](#installation) first and then run `just run-tags adjust-nextcloud-config -l mash.example.com`. The installation updates the container environment, mounts, networks, and systemd dependencies; the adjustment writes the matching Redis and memory-cache settings to Nextcloud's persisted configuration.
+
+#### Disabling Valkey integration
+
+Keep the old Valkey service and connection available while removing both endpoint settings and the related network and systemd entries from your inventory. These inventory edits do not change the existing container until you rerun the installation, so do not stop Valkey yet. Run `just run-tags adjust-nextcloud-config -l mash.example.com` first. This removes Nextcloud's persisted `redis`, `memcache.distributed`, and `memcache.locking` settings in one configuration import while the existing container can still reach the old endpoint.
+
+Only after that adjustment succeeds, rerun the [installation](#installation). This removes the Redis environment, socket mount, session configuration, network attachment, and systemd dependency from the Nextcloud container and service.
+
+Recovery depends on how far the transition progressed:
+
+- If only the old Valkey service stopped and the Nextcloud installation has not yet removed its runtime wiring, restart that service while keeping the disabled target state in the inventory. Then retry the configuration adjustment and continue with the installation.
+- If the installation already removed the old runtime wiring, temporarily restore the previous endpoint, network, and systemd settings in the inventory and rerun the installation. Confirm that Nextcloud is healthy, reapply the disabled target state in the inventory, run the configuration adjustment, and only then run the installation again.
+
+After completing the applicable two runs, use `just run-tags query-status-nextcloud -l mash.example.com` to verify that Nextcloud starts, then check Nextcloud's administration overview for cache or file-locking warnings. To roll back, restore the previous complete endpoint, network, and systemd settings, run the installation, and then run the configuration adjustment again.
+
+Removing Nextcloud's integration settings does not disable or uninstall the Valkey service and does not delete its data. Keep a shared instance if another service uses it. Treat removal of an unused dedicated instance and its data as a separate lifecycle decision.
+
 ### Checking SMTP server configuration
 
 The playbook automatically configures a SMTP server (Exim-relay), to which the Nextcloud instance connects to send emails. After logging in as the admin user, you can check the configuration at `https://mash.example.com/nextcloud/settings/admin` for basic administration settings.
