@@ -84,11 +84,13 @@ To create a dedicated instance for NodeBB, you can follow the steps below:
 
 *See [this page](../running-multiple-instances.md) for details about configuring multiple instances of Valkey on the same server.*
 
+This recipe intentionally installs NodeBB and its dedicated Valkey instance on the same managed node, connecting them through a host-mounted Unix socket on that node. Unix sockets cannot cross managed nodes, so the inventory example uses the same `ansible_host` value for both inventory hosts. A Valkey deployment on another managed node requires separately exposing and securing Valkey over TCP and configuring NodeBB's Valkey connection variables for that reachable endpoint; that remote topology is not covered here.
+
 ##### Adjust `hosts`
 
 At first, you need to adjust `inventory/hosts` file to add a supplementary host for NodeBB.
 
-The content should be something like below. Make sure to replace `mash.example.com` with your hostname and `YOUR_SERVER_IP_ADDRESS_HERE` with the IP address of the host, respectively. The same IP address should be set to both, unless the Valkey instance will be served from a different machine.
+The content should be something like below. Make sure to replace `mash.example.com` with your hostname and `YOUR_SERVER_IP_ADDRESS_HERE` with the IP address of the managed node, respectively.
 
 ```ini
 [mash_servers]
@@ -101,7 +103,7 @@ mash.example.com-nodebb-deps ansible_host=YOUR_SERVER_IP_ADDRESS_HERE
 …
 ```
 
-`mash_example_com` can be any string and does not have to match with the hostname.
+`mash_example_com` can be any valid Ansible inventory group name and does not need to match the managed node's hostname.
 
 You can just add an entry for the supplementary host to `[mash_example_com]` if there are other entries there already.
 
@@ -244,7 +246,7 @@ Running the installation command will create the shared Valkey instance named `m
 
 If you have decided to install the dedicated Valkey instance for NodeBB, make sure to run the [installing](../installing.md) command for the supplementary host (`mash.example.com-nodebb-deps`) first, before running it for the main host (`mash.example.com`).
 
-Note that running the `just` commands for installation (`just install-all` or `just setup-all`) automatically takes care of the order. See [here](../running-multiple-instances.md#1-adjust-hosts) for more details about it.
+Use `-l` as shown in [Installation](../running-multiple-instances.md#installation) to run these as separate limited installations. Do not rely on an unscoped `just install-all` or `just setup-all` command to serialize them; Ansible may run inventory aliases which target the same managed node in parallel.
 
 ## Usage
 
