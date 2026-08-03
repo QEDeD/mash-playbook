@@ -23,7 +23,7 @@ Here are some examples of shortcuts:
 | `just setup-all`                               | Run `ansible-playbook -i inventory/hosts setup.yml --tags=setup-all,start`                                     |
 | `just install-all --ask-vault-pass`            | Run commands with additional arguments (`--ask-vault-pass` will be appended to the above installation command) |
 | `just run-tags install-miniflux,start`         | Run specific playbook tags (here `install-miniflux` and `start`)                                               |
-| `just install-service miniflux`                | Run `just run-tags install-miniflux,start` with even less typing                                               |
+| `just install-service miniflux`                | Run `just run --tags=install-miniflux,start-group --extra-vars=group=miniflux` with even less typing           |
 | `just start-all`                               | (Re-)starts all services                                                                                       |
 | `just stop-group postgres`                     | Stop only the Postgres service                                                                                 |
 
@@ -44,10 +44,19 @@ Such kind of difference sometimes matters. For example, when you install a serve
 
 ## Conditional service restart
 
-When running `install-all` or `install-service` (whether via `just` or raw `ansible-playbook`), only services whose configuration or container image actually changed during the playbook run will be restarted. Unchanged services are left running (or get started if they were stopped). This reduces unnecessary downtime.
+The standard `just` recipes automatically add the playbook tags shown below. Users type only the command in the first column.
 
-When running with `setup-*` tags (e.g. `setup-all`, `setup-miniflux`), all services are unconditionally restarted regardless of whether changes were detected. This is appropriate for setup's thorough "full setup" semantics.
+| Command                        | Tags added by the recipe      | Restart behavior                                              |
+| ------------------------------ | ----------------------------- | ------------------------------------------------------------- |
+| `just install-all`             | `install-all,start`           | Conditional: restart only services marked as needing restart. |
+| `just install-service SERVICE` | `install-SERVICE,start-group` | Conditional within the selected service group.                |
+| `just setup-all`               | `setup-all,start`             | Unconditional: restart all targeted services.                 |
+| `just setup-service SERVICE`   | `setup-SERVICE,start-group`   | Unconditional within the selected service group.              |
+| `just start-all`               | `start-all`                   | Unconditional: restart all services.                          |
+| `just start-group GROUP`       | `start-group`                 | Unconditional within the selected service group.              |
 
-`start-all` and `start-group` always restart all targeted services, since no installation tasks run during these commands.
+In conditional mode, unchanged running services are left alone, while unchanged stopped services are started.
 
-This behavior is automatically determined based on the playbook tags in use. It can be overridden with the `devture_systemd_service_manager_conditional_restart_enabled` variable. For example, to force unconditional restarts during installation: `just install-all --extra-vars='devture_systemd_service_manager_conditional_restart_enabled=false'`
+For raw `ansible-playbook` or `just run-tags` invocations, conditional restart is enabled only when the selected tags include an `install-*` tag and no `setup-*` tag. Runs without an `install-*` tag, including standalone start or restart tag selections, restart their targeted services unconditionally.
+
+This behavior can be overridden with the `devture_systemd_service_manager_conditional_restart_enabled` variable. For example, to force unconditional restarts during installation: `just install-all --extra-vars='{"devture_systemd_service_manager_conditional_restart_enabled": false}'`
