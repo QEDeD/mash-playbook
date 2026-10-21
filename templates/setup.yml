@@ -1,7 +1,50 @@
 ---
+# Inventory settings such as `ansible_become_user=root` take precedence over the `become`/`become_user`
+# keywords that tasks set (for example to run as the `mash` service account), so this first play
+# rejects them before fact gathering. The main play below sets `become: true` and `become_user: root`
+# as defaults that individual tasks still override. Nothing here needs editing;
+# see "Privilege escalation settings" in docs/installing.md.
+- name: Validate privilege escalation configuration
+  hosts: "{{ target if target is defined else 'mash_servers' }}"
+  gather_facts: false
+
+  tasks:
+    - name: Reject privilege escalation overrides
+      ansible.builtin.assert:
+        that:
+          - ansible_become is not defined
+          - ansible_become_user is not defined
+          - ansible_sudo_user is not defined
+          - ansible_su_user is not defined
+          - ansible_doas_user is not defined
+          - ansible_dzdo_user is not defined
+          - ansible_ksu_user is not defined
+          - ansible_machinectl_user is not defined
+          - ansible_pbrun_user is not defined
+          - ansible_pfexec_user is not defined
+          - ansible_run0_user is not defined
+          - ansible_sesu_user is not defined
+        quiet: true
+        fail_msg: >-
+          Privilege escalation overrides are defined for this host.
+          Remove {{ ['ansible_become', 'ansible_become_user', 'ansible_sudo_user', 'ansible_su_user',
+          'ansible_doas_user', 'ansible_dzdo_user', 'ansible_ksu_user', 'ansible_machinectl_user',
+          'ansible_pbrun_user', 'ansible_pfexec_user', 'ansible_run0_user', 'ansible_sesu_user']
+          | select('in', query('ansible.builtin.varnames', '^ansible_'))
+          | join(', ') }} from this host's inventory line (usually in inventory/hosts)
+          and from any host_vars, group_vars or -e extra variables, then run the same command again.
+          Keep ansible_ssh_user (or ansible_user), ansible_become_method and ansible_become_password; they are allowed.
+          The playbook escalates privileges itself and chooses root or a service account for each task;
+          these overrides force one account for every task.
+          To keep them deliberately, set mash_playbook_privilege_escalation_validation_enabled to false.
+          See 'Privilege escalation settings' in docs/installing.md.
+      when: mash_playbook_privilege_escalation_validation_enabled | default(true) | bool
+      tags: [always]
+
 - name: "Set up a self-hosted server"
   hosts: "{{ target if target is defined else 'mash_servers' }}"
   become: true
+  become_user: root
 
   roles:
     # role-specific:playbook_help

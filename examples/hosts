@@ -1,7 +1,10 @@
-# To connect using a non-root user (and elevate to root with sudo later),
-# replace `ansible_ssh_user=root` with something like this: `ansible_ssh_user=username ansible_become=true ansible_become_user=root`.
-# If sudo requires a password, either add `ansible_become_password=PASSWORD_HERE` to the host line
-# or tell Ansible to ask you for the password interactively by adding a `--ask-become-pass` (`-K`) flag to all `ansible-playbook` (or `just`) commands.
+# To connect using a non-root user, replace `ansible_ssh_user=root` with `ansible_ssh_user=username`.
+# That user must be able to run sudo. Do not add `ansible_become` or `ansible_become_user`:
+# the playbook runs sudo itself and picks the right account (root or a service account) for each task,
+# and such settings would override that choice, so the playbook refuses to run with them.
+# See "Privilege escalation settings" in docs/installing.md for the full list of rejected settings and for deliberate exceptions.
+# If sudo asks that user for a password, add `--ask-become-pass` (`-K`) to `ansible-playbook` (or `just`) commands,
+# or store the password securely in `ansible_become_password` (see docs/installing.md).
 #
 # For improved Ansible performance, SSH pipelining is enabled by default in `ansible.cfg`.
 # If this causes SSH connection troubles, disable it by adding `ansible_ssh_pipelining=False`
